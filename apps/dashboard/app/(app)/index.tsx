@@ -192,7 +192,7 @@ export default function HomeScreen() {
               icon={<OrdersIcon size={17} color={theme.color.primary} />}
             />
             <KpiTile
-              label="Pending"
+              label="Pending now"
               value={String(data.pendingOrders)}
               caption="Awaiting acceptance now"
               tone={data.pendingOrders > 0 ? 'warning' : 'neutral'}
@@ -204,7 +204,7 @@ export default function HomeScreen() {
               }
             />
             <KpiTile
-              label="In the kitchen"
+              label="In the kitchen now"
               value={String(data.inProgressOrders)}
               caption="Accepted, preparing or ready"
               tone="info"
@@ -216,7 +216,26 @@ export default function HomeScreen() {
             <RevenueChart data={data.revenueTrend} />
           </Card>
 
-          <Card padding={5} header={<Text variant="heading">Orders by status</Text>}>
+          {/*
+            The scope has to be spelled out.
+
+            These chips are scoped to the selected range, whereas the "Pending" and "In the
+            kitchen" tiles above are LIVE queue depths that ignore the range (an order
+            placed last week that nobody accepted is still pending today). Without the
+            qualifier the screen showed "Pending 5" in a tile and "Pending · 0" in a chip
+            at the same time, which reads as a bug rather than as two different questions.
+          */}
+          <Card
+            padding={5}
+            header={
+              <VStack gap={0.5}>
+                <Text variant="heading">Orders by status</Text>
+                <Text variant="caption" tone="subtle">
+                  {`Placed in the selected range (${RANGES.find((r) => r.key === range)?.label ?? ''})`}
+                </Text>
+              </VStack>
+            }
+          >
             <HStack gap={2} wrap>
               {statusCounts.map(({ status, count }) => (
                 <Badge key={status} tone={ORDER_STATUS_TONE[status]} variant="subtle">
