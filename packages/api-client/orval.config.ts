@@ -28,7 +28,6 @@ export default defineConfig({
       // and fetch is native to both.
       httpClient: 'fetch',
       clean: true,
-      prettier: false,
       override: {
         mutator: {
           path: './src/http-client.ts',

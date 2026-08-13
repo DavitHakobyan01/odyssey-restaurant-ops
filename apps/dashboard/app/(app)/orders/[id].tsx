@@ -32,7 +32,6 @@ import {
   Field,
   HStack,
   Modal,
-  MonoText,
   PageHeader,
   Skeleton,
   Spacer,
