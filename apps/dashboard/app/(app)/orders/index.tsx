@@ -138,6 +138,9 @@ export default function OrdersScreen() {
       {
         key: 'type',
         header: 'Type',
+        // Hidden on phones: seven stacked label/value pairs per order made each card
+        // ~200px tall, so barely one order fitted on screen during service.
+        hideOnMobile: true,
         render: (row: OrderSummary) => (
           <Text variant="bodySm" tone="muted">
             {ORDER_TYPE_LABEL[row.type]}
@@ -148,6 +151,7 @@ export default function OrdersScreen() {
         key: 'itemCount',
         header: 'Items',
         align: 'right' as const,
+        hideOnMobile: true,
         render: (row: OrderSummary) => (
           <Text variant="bodySm" numeric tone="muted">
             {row.itemCount}

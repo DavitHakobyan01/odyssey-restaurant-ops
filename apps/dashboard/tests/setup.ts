@@ -11,6 +11,27 @@ import { createElement, type ReactNode } from 'react'
 import { afterEach, vi } from 'vitest'
 
 /**
+ * Stub `react-native-safe-area-context`.
+ *
+ * Like react-native-svg, it publishes source Vite's SSR transform cannot parse, so any
+ * module importing it fails to load with `SyntaxError: Unexpected token 'typeof'` —
+ * which is every screen, because AppShell reads the safe-area insets.
+ *
+ * Zero insets are the correct value for a desktop browser anyway; the insets only matter
+ * on a notched device, which jsdom is not.
+ */
+vi.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+  useSafeAreaFrame: () => ({ x: 0, y: 0, width: 375, height: 812 }),
+  SafeAreaProvider: ({ children }: { children: ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: ReactNode }) => children,
+  initialWindowMetrics: {
+    frame: { x: 0, y: 0, width: 375, height: 812 },
+    insets: { top: 0, right: 0, bottom: 0, left: 0 },
+  },
+}))
+
+/**
  * Stub `react-native-svg`.
  *
  * The package publishes `"react-native": "src/index.ts"` (untranspiled source) and a

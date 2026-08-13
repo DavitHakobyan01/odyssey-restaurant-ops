@@ -36,7 +36,7 @@
  *     implement all five states including the layout-stable focus ring. Re-implementing
  *     a close button here would be a second, drifting copy of that state matrix.
  */
-import { Children, cloneElement, isValidElement, type ReactNode } from 'react'
+import { Children, Fragment, cloneElement, isValidElement, type ReactNode } from 'react'
 import {
   Modal as RNModal,
   Pressable,
@@ -239,18 +239,36 @@ export type DialogFooterProps = {
  * making every call site branch on the breakpoint defeats the point of the primitive.
  * Host elements are skipped so react-native-web never sees an unknown DOM prop.
  */
+/**
+ * Clone `fullWidth` onto every action, descending through Fragments.
+ *
+ * The recursion is the whole point. `Children.map` treats a Fragment as a *single opaque
+ * child* — it does not descend into it — and `isValidElement` returns true for one. So a
+ * footer written the natural way, `footer={<><Button/><Button/></>}`, had `fullWidth`
+ * cloned onto the Fragment instead of the buttons: React logged
+ * "Invalid prop `fullWidth` supplied to React.Fragment", and because Button sets
+ * `alignSelf: 'flex-start'` when `fullWidth` is false, the buttons rendered shrunk to
+ * text width and jammed left instead of filling the sheet.
+ *
+ * Every footer in the app is a Fragment, so this silently affected all of them.
+ */
+function makeFullWidth(node: ReactNode): ReactNode {
+  return Children.map(node, (child) => {
+    if (!isValidElement<{ fullWidth?: boolean; children?: ReactNode }>(child)) return child
+    // Fragments carry no props of their own — recurse into their children instead.
+    if (child.type === Fragment) return makeFullWidth(child.props.children)
+    // Host elements ('div', 'span') would receive an unknown DOM prop.
+    if (typeof child.type === 'string') return child
+    return cloneElement(child, { fullWidth: true })
+  })
+}
+
 export function DialogFooter({ children, stacked = false, testID }: DialogFooterProps) {
   const theme = useTheme()
 
   if (children === undefined || children === null) return null
 
-  const actions = stacked
-    ? Children.map(children, (child) => {
-        if (!isValidElement<{ fullWidth?: boolean }>(child)) return child
-        if (typeof child.type === 'string') return child
-        return cloneElement(child, { fullWidth: true })
-      })
-    : children
+  const actions = stacked ? makeFullWidth(children) : children
 
   return (
     <>

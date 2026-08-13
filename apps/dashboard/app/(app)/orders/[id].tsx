@@ -38,6 +38,7 @@ import {
   Text,
   Textarea,
   VStack,
+  useBreakpoint,
   useTheme,
 } from '@odyssey/ui'
 
@@ -47,6 +48,7 @@ export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const theme = useTheme()
+  const isPhone = useBreakpoint() === 'sm'
 
   const { data: order, isPending, isError, error, refetch } = useGetOrder(id)
   const { runAction, runningAction } = useOrderActions()
@@ -176,7 +178,12 @@ export default function OrderDetailScreen() {
       ) : null}
 
       <HStack gap={5} wrap align="flex-start">
-        <VStack gap={5} style={{ flex: 2, minWidth: 320 }}>
+        {/*
+          `minWidth` is dropped at phone width. A flex item whose min-width exceeds its
+          container overflows it, and 320 is wider than the content area on a 320pt-class
+          phone or in split-screen — which would force the whole page to scroll sideways.
+        */}
+        <VStack gap={5} style={{ flex: 2, minWidth: isPhone ? 0 : 320 }}>
           <Card padding={0} header={<Text variant="heading">Items</Text>}>
             <Table
               data={order.items}
@@ -240,7 +247,7 @@ export default function OrderDetailScreen() {
           ) : null}
         </VStack>
 
-        <VStack gap={5} style={{ flex: 1, minWidth: 280 }}>
+        <VStack gap={5} style={{ flex: 1, minWidth: isPhone ? 0 : 280 }}>
           <Card padding={4} header={<Text variant="heading">Customer</Text>}>
             <VStack gap={1}>
               <Text variant="bodyMedium">{order.customer.name}</Text>

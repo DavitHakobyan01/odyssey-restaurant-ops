@@ -24,6 +24,24 @@ React Native primitives with no web-only APIs, `useBreakpoint()` instead of medi
 and `react-native-svg` for icons — so it is structurally native-ready. I have not run it
 on a simulator or device. Treat native as a bonus that is plausible, not as a claim.
 
+**Responsive web is built and tested; mobile *polish* is partial.** The brief requires web
+only, so phone-width was treated as a bonus rather than a target. What is verified by tests
+at 375px: the sidebar becomes a bottom tab bar, the modal becomes a bottom sheet with
+full-width stacked actions, page headers stack, and the data table becomes a stacked card
+list. What is knowingly left rough:
+
+- **The menu item row does not restructure at phone width.** It is the one list with no
+  `sm` branch, so on a 375px screen the fixed-width price, availability switch and two
+  action buttons squeeze the item name into roughly 50px and it truncates. The fix is the
+  same two-line swap `Table` already performs; it was not worth the time against a
+  bonus requirement.
+- **No screen supplies `renderMobileRow`.** `Table` exposes it, and the Orders and CRM
+  tables use `hideOnMobile` to drop their least useful columns, but the phone cards still
+  use the generic label/value fallback rather than a designed mobile row.
+- **Bottom sheets have no safe-area inset on native.** On a notched phone the stacked
+  footer actions would sit under the home indicator. `AppShell` handles this for the tab
+  bar; `Modal` and `Toast` do not. Web is unaffected.
+
 **No image upload.** `menu_items.imageUrl` is a URL column with no upload pipeline (R2 +
 signed URLs would be the natural fit). Seeded items have no images.
 

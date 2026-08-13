@@ -158,6 +158,8 @@ export default function CrmScreen() {
         key: 'averageOrderValueCents',
         header: 'Average',
         align: 'right' as const,
+        // Hidden on phones: it is spend divided by orders, both of which stay visible.
+        hideOnMobile: true,
         render: (row: CustomerWithStats) => (
           <Text variant="bodySm" numeric tone="muted">
             {formatMoney(row.averageOrderValueCents)}

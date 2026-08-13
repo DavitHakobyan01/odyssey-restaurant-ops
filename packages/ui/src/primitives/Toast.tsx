@@ -231,6 +231,15 @@ function ToastViewport({
         alignItems: compact ? 'stretch' : 'flex-end',
         gap: theme.spacing[2],
         padding: theme.spacing[compact ? 3 : 4],
+        /**
+         * On a phone the toast stack sits above the app's bottom navigation.
+         *
+         * Without this offset a single toast covered the entire tab bar — and because
+         * `danger` toasts never auto-dismiss (see DEFAULT_DURATION), an API error left the
+         * operator unable to change screens until they found the small dismiss control.
+         * The value clears a minimum-touch-target row plus its padding.
+         */
+        ...(compact ? { paddingBottom: theme.layout.minTouchTarget + theme.spacing[4] } : {}),
         zIndex: theme.zIndex.toast,
       }}
     >
