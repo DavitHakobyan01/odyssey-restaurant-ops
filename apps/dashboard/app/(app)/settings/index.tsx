@@ -20,12 +20,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import {
-  ApiClientError,
   getGetSettingsQueryKey,
   useGetSettings,
   useUpdateSettings,
 } from '@odyssey/api-client'
 import type { RestaurantSettings, UpdateSettingsRequest } from '@odyssey/api-client'
+import { describeError } from '../../../src/lib/errors'
 import { DAY_NAMES, formatMoney } from '@odyssey/shared'
 import { calculateOrderTotals } from '@odyssey/types/domain'
 import {
@@ -257,7 +257,7 @@ export default function SettingsScreen() {
     } catch (caught) {
       toast.error(
         'Could not save settings',
-        caught instanceof ApiClientError ? caught.message : 'Please try again.',
+        describeError(caught),
       )
     }
   }

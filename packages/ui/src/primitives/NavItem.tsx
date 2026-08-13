@@ -158,8 +158,8 @@ export function NavItem({
 
   // Matches Button's ring inset exactly, so every focus ring in the system reads as the
   // same object. Expressed from the 1px base token rather than as a bare literal.
-  const ringOffset = theme.spacing.px * 3
-  const accentWidth = theme.spacing.px * 3
+  const ringOffset = theme.focusRingOffset
+  const accentWidth = theme.focusRingOffset
   const hasBadge = typeof badge === 'number' && badge > 0
 
   return (

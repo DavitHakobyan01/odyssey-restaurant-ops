@@ -53,7 +53,6 @@ const CHECKBOX_SIZE_SPEC = {
   md: { box: 20, textVariant: 'body' },
 } as const
 
-const FOCUS_RING_OFFSET = 3
 
 type CheckboxVisual = { background: string; border: string; mark: string }
 
@@ -233,11 +232,11 @@ export function Checkbox({
                   style={{
                     pointerEvents: 'none',
                     position: 'absolute',
-                    top: -FOCUS_RING_OFFSET,
-                    left: -FOCUS_RING_OFFSET,
-                    right: -FOCUS_RING_OFFSET,
-                    bottom: -FOCUS_RING_OFFSET,
-                    borderRadius: theme.radius.sm + FOCUS_RING_OFFSET,
+                    top: -theme.focusRingOffset,
+                    left: -theme.focusRingOffset,
+                    right: -theme.focusRingOffset,
+                    bottom: -theme.focusRingOffset,
+                    borderRadius: theme.radius.sm + theme.focusRingOffset,
                     borderWidth: theme.borderWidth.focus,
                     borderColor: theme.color.borderFocus,
                   }}

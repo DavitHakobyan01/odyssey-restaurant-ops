@@ -69,7 +69,7 @@ function Crumb({ item, testID }: { item: BreadcrumbItem & { onPress: () => void 
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
 
-  const ringOffset = theme.spacing.px * 3
+  const ringOffset = theme.focusRingOffset
   const height = theme.spacing[6]
   // Grow the touchable box out to the platform minimum without changing the visual box.
   const slopY = Math.max(0, (theme.layout.minTouchTarget - height) / 2)

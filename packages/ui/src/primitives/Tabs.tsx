@@ -171,7 +171,7 @@ export function Tabs({
     tabRefs.current[target.key]?.focus()
   }
 
-  const ringOffset = theme.spacing.px * 3
+  const ringOffset = theme.focusRingOffset
 
   return (
     <View

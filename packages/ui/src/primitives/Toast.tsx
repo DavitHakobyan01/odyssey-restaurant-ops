@@ -481,11 +481,11 @@ function ToastDismissButton({ onPress }: { onPress: () => void }) {
               style={{
                 pointerEvents: 'none',
                 position: 'absolute',
-                top: -3,
-                left: -3,
-                right: -3,
-                bottom: -3,
-                borderRadius: theme.radius.md + 3,
+                top: -theme.focusRingOffset,
+                left: -theme.focusRingOffset,
+                right: -theme.focusRingOffset,
+                bottom: -theme.focusRingOffset,
+                borderRadius: theme.radius.md + theme.focusRingOffset,
                 borderWidth: theme.borderWidth.focus,
                 borderColor: theme.color.borderFocus,
               }}

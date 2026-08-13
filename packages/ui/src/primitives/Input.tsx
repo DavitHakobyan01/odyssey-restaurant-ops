@@ -62,12 +62,6 @@ export type InputSize = 'sm' | 'md' | 'lg'
  */
 export const INPUT_SIZE_SPEC = controlSize
 
-/**
- * Distance from the box to the focus ring. Matches Button so that a focused input and a
- * focused button in the same toolbar have rings on the same optical rhythm.
- */
-export const FOCUS_RING_OFFSET = 3
-
 export type InputInteractionState = {
   hovered: boolean
   pressed: boolean
@@ -130,11 +124,11 @@ export function InputFocusRing({ visible, radius }: { visible: boolean; radius: 
       style={{
         pointerEvents: 'none',
         position: 'absolute',
-        top: -FOCUS_RING_OFFSET,
-        left: -FOCUS_RING_OFFSET,
-        right: -FOCUS_RING_OFFSET,
-        bottom: -FOCUS_RING_OFFSET,
-        borderRadius: radius + FOCUS_RING_OFFSET,
+        top: -theme.focusRingOffset,
+        left: -theme.focusRingOffset,
+        right: -theme.focusRingOffset,
+        bottom: -theme.focusRingOffset,
+        borderRadius: radius + theme.focusRingOffset,
         borderWidth: theme.borderWidth.focus,
         borderColor: theme.color.borderFocus,
       }}

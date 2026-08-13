@@ -24,6 +24,7 @@ import {
   useUpdateMenuItem,
 } from '@odyssey/api-client'
 import type { MenuCategoryWithItems, MenuItem } from '@odyssey/api-client'
+import { describeError } from '../../../src/lib/errors'
 import { formatMoney, pluralize } from '@odyssey/shared'
 
 import { invalidateMenuDependents } from '../../../src/lib/cache'
@@ -125,7 +126,7 @@ export default function MenuScreen() {
     } catch (caught) {
       toast.error(
         'Could not update availability',
-        caught instanceof ApiClientError ? caught.message : 'Please try again.',
+        describeError(caught),
       )
     }
   }
@@ -208,7 +209,7 @@ export default function MenuScreen() {
     } catch (caught) {
       toast.error(
         'Could not add the category',
-        caught instanceof ApiClientError ? caught.message : 'Please try again.',
+        describeError(caught),
       )
     }
   }
@@ -225,7 +226,7 @@ export default function MenuScreen() {
       // message already explains the correct alternative. Surface it verbatim.
       toast.error(
         'Could not delete this item',
-        caught instanceof ApiClientError ? caught.message : 'Please try again.',
+        describeError(caught),
       )
       setDeleteTarget(null)
     }

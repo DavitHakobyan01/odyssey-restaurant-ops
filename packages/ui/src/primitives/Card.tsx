@@ -50,7 +50,6 @@ import { Text } from './Text'
  * How far outside the box the focus ring sits. Matches Button so every focusable thing in
  * the product has an identically-offset ring.
  */
-const FOCUS_RING_OFFSET = 3
 
 /**
  * Hover lift: each elevation's "one step up" neighbour.
@@ -273,11 +272,11 @@ export function Card({
           style={{
             pointerEvents: 'none',
             position: 'absolute',
-            top: -FOCUS_RING_OFFSET,
-            left: -FOCUS_RING_OFFSET,
-            right: -FOCUS_RING_OFFSET,
-            bottom: -FOCUS_RING_OFFSET,
-            borderRadius: theme.radius.xl + FOCUS_RING_OFFSET,
+            top: -theme.focusRingOffset,
+            left: -theme.focusRingOffset,
+            right: -theme.focusRingOffset,
+            bottom: -theme.focusRingOffset,
+            borderRadius: theme.radius.xl + theme.focusRingOffset,
             borderWidth: theme.borderWidth.focus,
             borderColor: theme.color.borderFocus,
           }}

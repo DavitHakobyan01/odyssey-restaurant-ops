@@ -63,7 +63,6 @@ const SWITCH_SIZE_SPEC = {
   md: { width: 44, height: 26, inset: 3, textVariant: 'body' },
 } as const
 
-const FOCUS_RING_OFFSET = 3
 
 type SwitchTrackColors = { off: string; on: string }
 
@@ -196,10 +195,10 @@ export function Switch({
                   style={{
                     pointerEvents: 'none',
                     position: 'absolute',
-                    top: -FOCUS_RING_OFFSET,
-                    left: -FOCUS_RING_OFFSET,
-                    right: -FOCUS_RING_OFFSET,
-                    bottom: -FOCUS_RING_OFFSET,
+                    top: -theme.focusRingOffset,
+                    left: -theme.focusRingOffset,
+                    right: -theme.focusRingOffset,
+                    bottom: -theme.focusRingOffset,
                     borderRadius: theme.radius.full,
                     borderWidth: theme.borderWidth.focus,
                     borderColor: theme.color.borderFocus,
