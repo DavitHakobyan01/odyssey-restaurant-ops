@@ -12,6 +12,7 @@ import { customers, orderItems, orders } from '@odyssey/types/db'
 import type { NewOrderItemRow, OrderItemRow, OrderRow } from '@odyssey/types/db'
 
 import type { Database } from '../db/client'
+import { containsPattern } from '../lib/search'
 
 /** The customer fields embedded in order responses. */
 const customerRefColumns = {
@@ -43,7 +44,8 @@ function buildOrderFilters(query: OrderListQuery) {
     filters.push(lte(orders.placedAt, new Date(query.placedTo)))
   }
   if (query.search) {
-    const pattern = `%${query.search}%`
+    // Escaped: an unescaped % or _ in the search term acts as a wildcard.
+    const pattern = containsPattern(query.search)
     // Operators search by whatever they have to hand — the order number read off a
     // ticket, or the customer who is standing at the counter.
     filters.push(

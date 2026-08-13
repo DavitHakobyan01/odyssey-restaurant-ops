@@ -30,6 +30,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Animated, Easing, Pressable, View, type StyleProp, type ViewStyle } from 'react-native'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import type { Theme } from '../tokens'
 import { Text } from './Text'
@@ -150,7 +151,7 @@ export function Switch({
           minWidth: theme.layout.minTouchTarget,
           alignSelf: hasText ? 'stretch' : 'flex-start',
           opacity: disabled ? 0.7 : 1,
-          cursor: disabled ? 'auto' : 'pointer',
+          ...webCursor(disabled ? 'not-allowed' : 'pointer'),
         },
         style,
       ]}

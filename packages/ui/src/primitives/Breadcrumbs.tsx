@@ -26,6 +26,7 @@
 import { useState } from 'react'
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import { Text } from './Text'
 
@@ -95,7 +96,7 @@ function Crumb({ item, testID }: { item: BreadcrumbItem & { onPress: () => void 
           : hovered
             ? theme.color.surfaceHover
             : 'transparent',
-        cursor: 'pointer',
+        ...webCursor('pointer'),
       })}
     >
       <Text

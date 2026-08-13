@@ -42,6 +42,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import { NavItemBadge } from './NavItem'
 import { Text } from './Text'
@@ -254,7 +255,7 @@ export function Tabs({
                 : hovered
                   ? theme.color.surfaceHover
                   : 'transparent',
-              cursor: 'pointer',
+              ...webCursor('pointer'),
             })}
           >
             <Text variant="bodySm" weight={selected ? '600' : '500'} numberOfLines={1} style={{ color: labelColor }}>

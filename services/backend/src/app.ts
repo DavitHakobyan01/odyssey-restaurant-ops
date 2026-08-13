@@ -9,8 +9,23 @@
  */
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
 import { logger } from 'hono/logger'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import type { ZodError } from 'zod'
+
+import type { ApiErrorCode } from '@odyssey/types'
+
+/** Framework-level failures mapped onto the API's own closed error enum. */
+const HTTP_EXCEPTION_CODES: Partial<Record<ContentfulStatusCode, ApiErrorCode>> = {
+  400: 'VALIDATION_ERROR',
+  404: 'NOT_FOUND',
+  405: 'VALIDATION_ERROR',
+  409: 'CONFLICT',
+  413: 'VALIDATION_ERROR',
+  415: 'VALIDATION_ERROR',
+  422: 'VALIDATION_ERROR',
+}
 
 import { createDatabase } from './db/client'
 import type { AppEnv } from './env'
@@ -85,6 +100,33 @@ export function createApp() {
   app.onError((err, c) => {
     if (err instanceof AppError) {
       return c.json(err.toBody(), err.status)
+    }
+
+    /**
+     * Exceptions raised by Hono itself, before any handler runs.
+     *
+     * The common one is a malformed or empty JSON body: parsing happens *before* zod
+     * validation, so it never reaches the `defaultHook` that shapes every other bad
+     * request. Left unhandled it fell through to the 500 branch below — which contradicts
+     * the OpenAPI document, where every route declares 400 for a request that fails
+     * validation, and which wrongly tells the caller to retry rather than fix the payload.
+     *
+     * Translating the framework's own status (rather than assuming 400) means other
+     * framework-level failures — 405, 413 — also arrive in the documented envelope
+     * instead of being flattened into "unexpected error".
+     */
+    if (err instanceof HTTPException) {
+      const code = HTTP_EXCEPTION_CODES[err.status] ?? 'INTERNAL_ERROR'
+      return c.json(
+        {
+          error: {
+            code,
+            message: err.status === 400 ? 'The request body could not be parsed.' : err.message,
+            details: [{ path: '(request)', message: err.message }],
+          },
+        },
+        err.status,
+      )
     }
 
     // Anything reaching here is a bug, not a domain outcome. Log the real error for

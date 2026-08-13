@@ -26,6 +26,7 @@ import { useState } from 'react'
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import type { Theme } from '../tokens'
 import { Text } from './Text'
@@ -194,7 +195,7 @@ export function NavItem({
           backgroundColor: visual.background,
           // React Native's `CursorValue` admits only 'auto' | 'pointer', so a disabled
           // item drops back to the default cursor rather than showing 'not-allowed'.
-          cursor: disabled ? 'auto' : 'pointer',
+          ...webCursor(disabled ? 'not-allowed' : 'pointer'),
           // Collapsed items are square; expanded ones fill the rail's width.
           ...(collapsed
             ? { width: theme.layout.minTouchTarget }

@@ -43,10 +43,12 @@ import {
 } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useBreakpoint, useTheme } from '../theme/ThemeProvider'
 import type { Theme } from '../tokens'
 import { Card } from './Card'
 import { Divider } from './Stack'
+import { Skeleton } from './Skeleton'
 import { Text } from './Text'
 
 export type TableAlign = 'left' | 'center' | 'right'
@@ -234,7 +236,7 @@ function SortableHeaderCell({
           : hovered
             ? theme.color.surfaceHover
             : 'transparent',
-        cursor: 'pointer',
+        ...webCursor('pointer'),
       })}
     >
       {typeof label === 'string' ? (
@@ -343,7 +345,7 @@ function TableRow({ children, onPress, accessibilityLabel, testID }: TableRowPro
           : hovered
             ? theme.color.surfaceHover
             : 'transparent',
-        cursor: 'pointer',
+        ...webCursor('pointer'),
       })}
     >
       {children}
@@ -373,16 +375,10 @@ function TableRow({ children, onPress, accessibilityLabel, testID }: TableRowPro
  */
 function SkeletonBar({ width }: { width: `${number}%` }) {
   const theme = useTheme()
-  return (
-    <View
-      style={{
-        width,
-        height: theme.spacing[3],
-        borderRadius: theme.radius.sm,
-        backgroundColor: theme.color.skeleton,
-      }}
-    />
-  )
+  // Delegates to the Skeleton primitive rather than drawing a static bar. A local
+  // implementation looked identical at rest but never animated, so a loading Table and a
+  // loading SkeletonCard on the same screen pulsed out of step — one of them not at all.
+  return <Skeleton width={width} height={theme.spacing[3]} radius="sm" />
 }
 
 /* -------------------------------------------------------------------------- */

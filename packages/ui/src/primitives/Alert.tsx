@@ -23,6 +23,7 @@ import {
 } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import { toneColors, type Tone } from '../tokens'
 import { Text } from './Text'
@@ -152,7 +153,7 @@ function AlertDismissButton({ onPress, tone }: { onPress: () => void; tone: Tone
         justifyContent: 'center',
         borderRadius: theme.radius.md,
         backgroundColor: pressed ? colors.solid : hovered ? colors.border : 'transparent',
-        cursor: 'pointer',
+        ...webCursor('pointer'),
       })}
     >
       {({ pressed }) => (

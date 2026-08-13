@@ -45,6 +45,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 
+import { webCursor } from '../theme/platform'
 import { useBreakpoint, useTheme } from '../theme/ThemeProvider'
 import { DialogBody, DialogFooter, DialogHeader } from './Modal'
 
@@ -214,7 +215,7 @@ export function Drawer({
               style={{
                 flex: 1,
                 backgroundColor: theme.color.overlay,
-                cursor: closeOnBackdropPress ? 'pointer' : 'auto',
+                ...webCursor(closeOnBackdropPress ? 'pointer' : 'default'),
               }}
             />
           </Pressable>

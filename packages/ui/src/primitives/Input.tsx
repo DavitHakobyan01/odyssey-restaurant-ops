@@ -37,7 +37,7 @@ import {
 } from 'react-native'
 
 import { useTheme } from '../theme/ThemeProvider'
-import type { Theme } from '../tokens'
+import { controlSize, type Theme } from '../tokens'
 import { useField } from './Field'
 import { Text } from './Text'
 
@@ -55,11 +55,12 @@ export type InputSize = 'sm' | 'md' | 'lg'
  * for filter bars and table cells where the row itself is the touch target, and it should
  * not be used as a form field on a touch screen.
  */
-export const INPUT_SIZE_SPEC = {
-  sm: { height: 36, paddingH: 2.5, gap: 2, textVariant: 'bodySm' },
-  md: { height: 44, paddingH: 3, gap: 2, textVariant: 'body' },
-  lg: { height: 52, paddingH: 4, gap: 2.5, textVariant: 'body' },
-} as const
+/**
+ * Alias of the shared `controlSize` ramp. Kept as a named export because Select and
+ * Textarea already import it; the values now live in the token layer so Button cannot
+ * drift away from them again.
+ */
+export const INPUT_SIZE_SPEC = controlSize
 
 /**
  * Distance from the box to the focus ring. Matches Button so that a focused input and a

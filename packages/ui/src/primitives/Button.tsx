@@ -32,7 +32,7 @@ import type { ReactNode } from 'react'
 
 import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
-import type { Theme } from '../tokens'
+import { controlSize, type Theme } from '../tokens'
 import { Text } from './Text'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerSubtle'
@@ -137,11 +137,12 @@ function resolveVisual(
   }
 }
 
-const SIZE_SPEC = {
-  sm: { height: 32, paddingH: 3, gap: 1.5, variant: 'bodySm' },
-  md: { height: 38, paddingH: 4, gap: 2, variant: 'bodySm' },
-  lg: { height: 46, paddingH: 5, gap: 2, variant: 'body' },
-} as const
+/**
+ * Sizing comes from the shared `controlSize` ramp in the token layer, not from a private
+ * table here. Button previously declared its own 32/38/46 while Input declared 36/44/52,
+ * so the two were never flush in the same form row.
+ */
+const SIZE_SPEC = controlSize
 
 export function Button({
   children,
@@ -230,7 +231,7 @@ export function Button({
               >
                 {iconLeft}
                 {children !== undefined && children !== null ? (
-                  <Text variant={spec.variant} weight="500" style={{ color: visual.text }}>
+                  <Text variant={spec.textVariant} weight="500" style={{ color: visual.text }}>
                     {children}
                   </Text>
                 ) : null}

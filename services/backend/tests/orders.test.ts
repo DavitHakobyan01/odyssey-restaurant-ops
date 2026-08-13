@@ -430,3 +430,49 @@ describe('GET /orders/:id', () => {
     expect(response.body.customer.id).toBe(fx.customerId)
   })
 })
+
+/**
+ * Regressions from the independent review pass.
+ */
+describe('review regressions', () => {
+  it('answers a malformed JSON body with 400, not 500', async () => {
+    const response = await request<ApiError>('/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"customer": {',
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('answers an empty JSON body with 400, not 500', async () => {
+    const response = await request<ApiError>('/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '',
+    })
+
+    expect(response.status).toBe(400)
+  })
+
+  /**
+   * `%` and `_` are LIKE wildcards. Unescaped, searching for a literal `%` matched every
+   * row — the operator sees "all orders" and reasonably reports it as a bug.
+   */
+  it('treats % and _ in a search term as literal characters', async () => {
+    await placeOrder(1)
+
+    const wildcard = await request<{ data: OrderSummary[] }>('/orders?search=%25')
+    expect(wildcard.status).toBe(200)
+    // No order number or customer in the fixture contains a literal '%'.
+    expect(wildcard.body.data).toHaveLength(0)
+
+    const underscore = await request<{ data: OrderSummary[] }>('/orders?search=_')
+    expect(underscore.body.data).toHaveLength(0)
+
+    // A real substring of the seeded customer name still matches.
+    const real = await request<{ data: OrderSummary[] }>('/orders?search=Test')
+    expect(real.body.data.length).toBeGreaterThan(0)
+  })
+})

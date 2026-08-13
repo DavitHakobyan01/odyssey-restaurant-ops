@@ -18,6 +18,7 @@ import type {
 } from '@odyssey/types/db'
 
 import type { Database } from '../db/client'
+import { containsPattern } from '../lib/search'
 
 /* -------------------------------- Categories -------------------------------- */
 
@@ -114,7 +115,8 @@ function buildItemFilters(query: MenuItemListQuery) {
   if (query.isAvailable !== undefined) filters.push(eq(menuItems.isAvailable, query.isAvailable))
   // ilike gives case-insensitive matching without lowering the column, which would
   // prevent the index from being used.
-  if (query.search) filters.push(ilike(menuItems.name, `%${query.search}%`))
+  // Escaped: an unescaped % or _ in the search term acts as a wildcard.
+  if (query.search) filters.push(ilike(menuItems.name, containsPattern(query.search)))
   return filters.length > 0 ? and(...filters) : undefined
 }
 

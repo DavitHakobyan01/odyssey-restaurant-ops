@@ -51,6 +51,7 @@ import {
 } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useBreakpoint, useTheme } from '../theme/ThemeProvider'
 import { toneColors, type Tone } from '../tokens'
 import { Text } from './Text'
@@ -456,7 +457,7 @@ function ToastDismissButton({ onPress }: { onPress: () => void }) {
           : hovered
             ? theme.color.surfaceHover
             : 'transparent',
-        cursor: 'pointer',
+        ...webCursor('pointer'),
       })}
     >
       {({ pressed }) => (

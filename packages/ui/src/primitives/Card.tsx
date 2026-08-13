@@ -41,6 +41,7 @@ import { useState } from 'react'
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import type { Elevation, Spacing, Theme } from '../tokens'
 import { Text } from './Text'
@@ -179,7 +180,7 @@ export function Card({
     // because the shadow lives on the parent, not on this node.
     overflow: 'hidden',
     ...(fill ? { flex: 1 } : {}),
-    ...(isInteractive ? { cursor: 'pointer' as const } : {}),
+    ...(isInteractive ? webCursor('pointer') : {}),
   })
 
   const content = (

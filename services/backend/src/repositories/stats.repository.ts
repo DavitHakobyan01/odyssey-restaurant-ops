@@ -290,7 +290,20 @@ function trendSeriesStart(range: StatsRange): SQL {
 }
 
 type RevenueTrendRow = {
-  bucket: Date
+  /**
+   * A raw Postgres timestamp string such as `2026-08-07 00:00:00-07`, NOT a `Date` and
+   * NOT ISO-8601.
+   *
+   * `db.execute()` runs raw SQL and bypasses Drizzle's column decoding, and Drizzle's
+   * postgres-js driver deliberately installs identity parsers for the timestamp OIDs so
+   * that it can own date conversion itself. There is no column here to borrow a decoder
+   * from via `.mapWith()`, so the value arrives as text.
+   *
+   * Typing it `Date` would be a lie that compiles: `bucket.getTime()` would pass the
+   * type-checker and throw at runtime. The service converts it with `toIso`, which
+   * accepts both shapes and normalises to the ISO-8601 the contract declares.
+   */
+  bucket: string
   revenueCents: string
   orderCount: string
 }
@@ -313,7 +326,7 @@ type RevenueTrendRow = {
 export async function getRevenueTrend(
   db: Database,
   range: StatsRange,
-): Promise<{ bucket: Date; revenueCents: number; orderCount: number }[]> {
+): Promise<{ bucket: string; revenueCents: number; orderCount: number }[]> {
   const { unit, step } = trendBucket(range)
   const seriesStart = trendSeriesStart(range)
 

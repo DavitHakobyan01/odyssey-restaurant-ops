@@ -226,6 +226,45 @@ export const layout = {
 
 export type Breakpoint = keyof typeof layout.breakpoints
 
+/* -------------------------------------------------------------------------- */
+/*                              Control geometry                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The one size ramp shared by every form-row control — Button, Input, Select, Textarea.
+ *
+ * This exists because it was previously stated twice. Button declared 32/38/46 while
+ * Input declared 36/44/52, so a Button and an Input with the same `size` prop were never
+ * flush in a row — a 6px mismatch at `md`, which is exactly how a design system starts
+ * looking sloppy while every individual component looks fine in isolation.
+ *
+ * `md` is 44 because that is `layout.minTouchTarget`: the default control size should
+ * clear the minimum touch target rather than sit just under it.
+ *
+ * Height, horizontal padding and the type variant all live together, because changing one
+ * without the others is what produced the drift in the first place.
+ */
+export const controlSize = {
+  sm: { height: 36, paddingH: 2.5, gap: 2, textVariant: 'bodySm' },
+  md: { height: 44, paddingH: 3, gap: 2, textVariant: 'body' },
+  lg: { height: 52, paddingH: 4, gap: 2.5, textVariant: 'body' },
+} as const satisfies Record<
+  'sm' | 'md' | 'lg',
+  { height: number; paddingH: Spacing; gap: Spacing; textVariant: TypographyVariant }
+>
+
+export type ControlSize = keyof typeof controlSize
+
+/**
+ * Focus-ring inset, in pixels, outside the control's border box.
+ *
+ * A single token because the value was previously spelled three different ways across
+ * nine components (an exported constant, private duplicates, `spacing.px * 3`, and bare
+ * `-3` literals) — so changing the system's focus treatment meant nine edits, two of
+ * which a grep would miss.
+ */
+export const focusRingOffset = 3
+
 /** Stacking order. Centralised so overlays can never be accidentally out-ordered. */
 export const zIndex = {
   base: 0,
@@ -490,6 +529,8 @@ export type Theme = {
   radius: typeof radius
   borderWidth: typeof borderWidth
   elevation: typeof elevation
+  controlSize: typeof controlSize
+  focusRingOffset: typeof focusRingOffset
   layout: typeof layout
   zIndex: typeof zIndex
   motion: typeof motion
@@ -502,6 +543,8 @@ const shared = {
   radius,
   borderWidth,
   elevation,
+  controlSize,
+  focusRingOffset,
   layout,
   zIndex,
   motion,

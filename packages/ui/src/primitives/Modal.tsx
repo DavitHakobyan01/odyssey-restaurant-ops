@@ -47,6 +47,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 
+import { webCursor } from '../theme/platform'
 import { useBreakpoint, useTheme } from '../theme/ThemeProvider'
 import { IconButton } from './Button'
 import { Divider, HStack, VStack } from './Stack'
@@ -370,7 +371,7 @@ export function Modal({
             style={{
               flex: 1,
               backgroundColor: theme.color.overlay,
-              cursor: closeOnBackdropPress ? 'pointer' : 'auto',
+              ...webCursor(closeOnBackdropPress ? 'pointer' : 'default'),
             }}
           />
         </Pressable>

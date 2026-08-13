@@ -18,6 +18,7 @@ import { customers, orders } from '@odyssey/types/db'
 import type { CustomerRow, NewCustomerRow } from '@odyssey/types/db'
 
 import type { Database } from '../db/client'
+import { containsPattern } from '../lib/search'
 
 /**
  * A customer row widened with the aggregates the CRM list needs.
@@ -130,7 +131,8 @@ const statsColumns = {
  */
 function buildCustomerFilters(query: CustomerListQuery): SQL | undefined {
   if (!query.search) return undefined
-  const pattern = `%${query.search}%`
+  // Escaped: an unescaped % or _ in the search term acts as a wildcard.
+  const pattern = containsPattern(query.search)
   return or(ilike(customers.name, pattern), ilike(customers.email, pattern))
 }
 
