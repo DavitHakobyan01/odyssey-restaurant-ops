@@ -74,22 +74,15 @@ export function buildPaginationMeta(
 /* -------------------------------------------------------------------------- */
 
 /**
- * A closed set of failure modes. The frontend switches on `code`, never on message
- * text, so copy can change without breaking behaviour.
+ * The failure-mode enum is declared in the dependency-free domain layer so the frontend
+ * can branch on `error.code` without importing zod. Imported here — rather than
+ * redeclared — so the zod enum below is built from that same tuple and the two cannot
+ * drift apart.
  */
-export const API_ERROR_CODES = [
-  'VALIDATION_ERROR',
-  'NOT_FOUND',
-  'CONFLICT',
-  'INVALID_TRANSITION',
-  'ITEM_UNAVAILABLE',
-  'ORDERS_DISABLED',
-  'BELOW_MINIMUM',
-  'TOTAL_MISMATCH',
-  'INTERNAL_ERROR',
-] as const
+import { API_ERROR_CODES } from '../domain/errors'
 
-export type ApiErrorCode = (typeof API_ERROR_CODES)[number]
+export { API_ERROR_CODES }
+export type { ApiErrorCode } from '../domain/errors'
 
 export const apiErrorSchema = z.object({
   error: z.object({

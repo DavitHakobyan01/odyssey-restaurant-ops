@@ -5,5 +5,6 @@
  * `@odyssey/types/domain` from the dashboard does not drag the ORM into the React Native
  * or web bundle.
  */
+export * from './errors'
 export * from './order-status'
 export * from './pricing'

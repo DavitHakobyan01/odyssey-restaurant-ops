@@ -32,6 +32,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@expo/metro-runtime':
+        specifier: ~57.0.9
+        version: 57.0.9(@expo/log-box@57.0.2)(expo@57.0.12)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
       '@odyssey/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
