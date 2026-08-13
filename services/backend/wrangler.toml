@@ -1,0 +1,31 @@
+name = "odyssey-restaurant-api"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# Required for `postgres-js` to open a TCP socket from inside the Worker runtime.
+# Without this flag the driver cannot reach Postgres at all.
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# Local development credential.
+#
+# This is intentionally checked in: it is the throwaway credential that
+# docker-compose.yml creates, so `pnpm dev:backend` works with zero setup after a
+# fresh clone. It grants access to nothing but a local container.
+#
+# To point at a different database (a Neon branch, a colleague's instance), create
+# services/backend/.dev.vars — it is gitignored and overrides this value:
+#
+#     DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"
+#
+# In production the value is never in this file; it is set once as an encrypted
+# secret and injected at runtime:
+#
+#     wrangler secret put DATABASE_URL
+# ---------------------------------------------------------------------------
+[vars]
+DATABASE_URL = "postgresql://odyssey:odyssey@localhost:5432/restaurant"
+CORS_ORIGIN = "*"
