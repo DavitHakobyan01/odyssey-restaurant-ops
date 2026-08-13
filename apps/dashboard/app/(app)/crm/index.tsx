@@ -26,8 +26,6 @@ import {
   Avatar,
   Button,
   Card,
-  DialogBody,
-  DialogFooter,
   EmptyState,
   ErrorState,
   Field,
@@ -276,53 +274,53 @@ export default function CrmScreen() {
         onClose={() => setCreateOpen(false)}
         title="Add customer"
         description="Email must be unique — it is how repeat orders are linked to one history."
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" loading={createCustomer.isPending} onPress={() => void submit()}>
+              Add customer
+            </Button>
+          </>
+        }
       >
-        <DialogBody>
-          <VStack gap={4}>
-            <Field label="Name" required error={fieldErrors.name}>
-              <Input
-                value={draft.name}
-                onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
-                placeholder="e.g. Amara Okafor"
-                invalid={Boolean(fieldErrors.name)}
-                autoFocus
-              />
-            </Field>
-            <Field label="Email" required error={fieldErrors.email}>
-              <Input
-                value={draft.email}
-                onChangeText={(email) => setDraft((current) => ({ ...current, email }))}
-                placeholder="name@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                invalid={Boolean(fieldErrors.email)}
-              />
-            </Field>
-            <Field label="Phone" error={fieldErrors.phone}>
-              <Input
-                value={draft.phone}
-                onChangeText={(phone) => setDraft((current) => ({ ...current, phone }))}
-                placeholder="Optional"
-                keyboardType="phone-pad"
-              />
-            </Field>
-            <Field label="Notes">
-              <Textarea
-                value={draft.notes}
-                onChangeText={(notes) => setDraft((current) => ({ ...current, notes }))}
-                placeholder="Allergies, preferences, anything the kitchen should know"
-              />
-            </Field>
-          </VStack>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setCreateOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" loading={createCustomer.isPending} onPress={() => void submit()}>
-            Add customer
-          </Button>
-        </DialogFooter>
+        <VStack gap={4}>
+          <Field label="Name" required error={fieldErrors.name}>
+            <Input
+              value={draft.name}
+              onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
+              placeholder="e.g. Amara Okafor"
+              invalid={Boolean(fieldErrors.name)}
+              autoFocus
+            />
+          </Field>
+          <Field label="Email" required error={fieldErrors.email}>
+            <Input
+              value={draft.email}
+              onChangeText={(email) => setDraft((current) => ({ ...current, email }))}
+              placeholder="name@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              invalid={Boolean(fieldErrors.email)}
+            />
+          </Field>
+          <Field label="Phone" error={fieldErrors.phone}>
+            <Input
+              value={draft.phone}
+              onChangeText={(phone) => setDraft((current) => ({ ...current, phone }))}
+              placeholder="Optional"
+              keyboardType="phone-pad"
+            />
+          </Field>
+          <Field label="Notes">
+            <Textarea
+              value={draft.notes}
+              onChangeText={(notes) => setDraft((current) => ({ ...current, notes }))}
+              placeholder="Allergies, preferences, anything the kitchen should know"
+            />
+          </Field>
+        </VStack>
       </Modal>
     </VStack>
   )

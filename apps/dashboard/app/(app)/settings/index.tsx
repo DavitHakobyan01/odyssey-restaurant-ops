@@ -16,7 +16,7 @@
  *
  * The form submits only fields that actually changed, matching the API's partial PATCH.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import {
@@ -87,7 +87,17 @@ function toDraft(settings: RestaurantSettings): Draft {
 function percentToBps(percent: string): number | null {
   const trimmed = percent.trim()
   if (trimmed === '') return null
-  const value = Number.parseFloat(trimmed)
+
+  /**
+   * `Number`, not `Number.parseFloat`.
+   *
+   * `parseFloat` stops at the first character it cannot read and returns what it has, so
+   * it accepts malformed input and silently discards the rest: `parseFloat('8.7.5')` is
+   * `8.7`, and `parseFloat('8abc')` is `8`. An operator fat-fingering a second decimal
+   * point would have set the tax rate to 8.70% while the field still read `8.7.5`, with
+   * no error shown. `Number('8.7.5')` is `NaN`, which this function reports as invalid.
+   */
+  const value = Number(trimmed)
   if (!Number.isFinite(value) || value < 0) return null
   return Math.round(value * 100)
 }
@@ -100,7 +110,12 @@ function toPositiveInt(raw: string): number | null {
   return Number.isInteger(value) && value > 0 ? value : null
 }
 
-type FieldErrors = Partial<Record<'taxRatePercent' | 'serviceFeePercent' | 'defaultPrepTimeMinutes', string>>
+type FieldErrors = Partial<
+  Record<
+    'restaurantName' | 'taxRatePercent' | 'serviceFeePercent' | 'defaultPrepTimeMinutes',
+    string
+  >
+>
 
 /**
  * Validate the numeric fields before anything is compared or submitted.
@@ -110,6 +125,12 @@ type FieldErrors = Partial<Record<'taxRatePercent' | 'serviceFeePercent' | 'defa
  */
 function validate(draft: Draft): FieldErrors {
   const errors: FieldErrors = {}
+
+  // The server declares min(1)/max(160); catching it here means the operator is corrected
+  // in place instead of pressing an enabled Save that is certain to 400.
+  const name = draft.restaurantName.trim()
+  if (name.length === 0) errors.restaurantName = 'Restaurant name is required.'
+  else if (name.length > 160) errors.restaurantName = 'Restaurant name is too long.'
 
   const tax = percentToBps(draft.taxRatePercent)
   if (tax === null) errors.taxRatePercent = 'Enter a percentage, for example 8.75.'
@@ -137,10 +158,25 @@ export default function SettingsScreen() {
 
   const [draft, setDraft] = useState<Draft | null>(null)
 
-  // Seed the form once the server data arrives, and re-seed if it changes underneath us
-  // (for example after a refetch on window focus).
+  /**
+   * Tracks whether the operator has touched the form.
+   *
+   * A ref, not state: it must not itself trigger a render, and it has to be readable from
+   * inside the effect below without becoming a dependency.
+   */
+  const hasLocalEdits = useRef(false)
+
+  /**
+   * Seed the form from server data — but never on top of unsaved edits.
+   *
+   * `refetchOnWindowFocus` is enabled globally, so alt-tabbing away and back re-runs this
+   * query. Without the guard, the effect rebuilt the entire draft from the server response
+   * and the operator's half-finished changes vanished with no warning — the classic
+   * "I typed that and it disappeared" bug. Seeding still happens on first load and after a
+   * successful save, which are the only times server data should win.
+   */
   useEffect(() => {
-    if (settings) setDraft(toDraft(settings))
+    if (settings && !hasLocalEdits.current) setDraft(toDraft(settings))
   }, [settings])
 
   /**
@@ -215,6 +251,7 @@ export default function SettingsScreen() {
     if (!isDirty || hasErrors) return
     try {
       await updateSettings.mutateAsync({ data: changes })
+      hasLocalEdits.current = false
       await queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() })
       toast.success('Settings saved')
     } catch (caught) {
@@ -251,8 +288,10 @@ export default function SettingsScreen() {
     )
   }
 
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+  const update = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    hasLocalEdits.current = true
     setDraft((current) => (current ? { ...current, [key]: value } : current))
+  }
 
   return (
     <VStack gap={5}>
@@ -295,10 +334,11 @@ export default function SettingsScreen() {
             label="Accepting orders"
             description="The master switch. While off, the API refuses every new order with a 422 — nothing reaches the kitchen."
           />
-          <Field label="Restaurant name">
+          <Field label="Restaurant name" required error={errors.restaurantName}>
             <Input
               value={draft.restaurantName}
               onChangeText={(value) => update('restaurantName', value)}
+              invalid={Boolean(errors.restaurantName)}
             />
           </Field>
         </VStack>

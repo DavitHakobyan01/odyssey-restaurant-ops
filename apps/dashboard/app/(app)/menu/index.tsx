@@ -17,7 +17,6 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import {
   ApiClientError,
-  getListFullMenuQueryKey,
   useCreateMenuCategory,
   useCreateMenuItem,
   useDeleteMenuItem,
@@ -26,12 +25,12 @@ import {
 } from '@odyssey/api-client'
 import type { MenuCategoryWithItems, MenuItem } from '@odyssey/api-client'
 import { formatMoney, pluralize } from '@odyssey/shared'
+
+import { invalidateMenuDependents } from '../../../src/lib/cache'
 import {
   Badge,
   Button,
   Card,
-  DialogBody,
-  DialogFooter,
   EmptyState,
   ErrorState,
   Field,
@@ -84,6 +83,7 @@ export default function MenuScreen() {
   const [draft, setDraft] = useState<ItemDraft>(EMPTY_ITEM)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [categoryName, setCategoryName] = useState('')
+  const [categoryError, setCategoryError] = useState<string | undefined>()
   const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null)
 
   const createItem = useCreateMenuItem()
@@ -91,9 +91,12 @@ export default function MenuScreen() {
   const deleteItem = useDeleteMenuItem()
   const createCategory = useCreateMenuCategory()
 
-  /** One invalidation target: the whole menu comes from a single query. */
-  const refreshMenu = () =>
-    queryClient.invalidateQueries({ queryKey: getListFullMenuQueryKey() })
+  /**
+   * `/menu/full` powers this screen, but `/menu/items` is a separate cache that the
+   * create-order modal reads. Invalidating only the first left the order form offering an
+   * item this screen had just marked unavailable. See lib/cache.ts.
+   */
+  const refreshMenu = () => invalidateMenuDependents(queryClient)
 
   const categoryOptions = useMemo(
     () => (categories ?? []).map((category) => ({ label: category.name, value: category.id })),
@@ -189,7 +192,13 @@ export default function MenuScreen() {
   }
 
   const submitCategory = async () => {
-    if (categoryName.trim().length === 0) return
+    // Previously a bare return: pressing Add with a blank name did nothing at all — no
+    // error, no toast, no field message — so the button read as broken.
+    if (categoryName.trim().length === 0) {
+      setCategoryError('Name is required.')
+      return
+    }
+    setCategoryError(undefined)
     try {
       await createCategory.mutateAsync({ data: { name: categoryName.trim(), sortOrder: 0 } })
       await refreshMenu()
@@ -299,80 +308,80 @@ export default function MenuScreen() {
         onClose={() => setItemModalOpen(false)}
         title={draft.id ? 'Edit item' : 'Add item'}
         description="Prices are stored in whole cents; the server recalculates order totals from them."
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setItemModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={createItem.isPending || updateItem.isPending}
+              onPress={() => void submitItem()}
+            >
+              {draft.id ? 'Save changes' : 'Add item'}
+            </Button>
+          </>
+        }
       >
-        <DialogBody>
-          <VStack gap={4}>
-            <Field label="Name" required error={fieldErrors.name}>
-              <Input
-                value={draft.name}
-                onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
-                placeholder="e.g. Margherita"
-                invalid={Boolean(fieldErrors.name)}
-              />
-            </Field>
-
-            <Field label="Category" required error={fieldErrors.categoryId}>
-              <Select
-                value={draft.categoryId}
-                onChange={(categoryId) => setDraft((current) => ({ ...current, categoryId }))}
-                options={categoryOptions}
-                placeholder="Choose a category"
-                invalid={Boolean(fieldErrors.categoryId)}
-              />
-            </Field>
-
-            <Field label="Price" required error={fieldErrors.priceCents}>
-              <MoneyInput
-                value={draft.priceCents}
-                onChangeValue={(priceCents) => setDraft((current) => ({ ...current, priceCents }))}
-                invalid={Boolean(fieldErrors.priceCents)}
-              />
-            </Field>
-
-            <Field label="Description" helperText="Shown to staff when building an order.">
-              <Textarea
-                value={draft.description}
-                onChangeText={(description) => setDraft((current) => ({ ...current, description }))}
-                placeholder="Optional"
-              />
-            </Field>
-
-            <Field label="Prep time" helperText="Minutes. Leave blank to use the restaurant default.">
-              <Input
-                value={draft.prepTimeMinutes}
-                onChangeText={(prepTimeMinutes) =>
-                  setDraft((current) => ({
-                    ...current,
-                    // Digits only: the API rejects a non-integer and there is no reason
-                    // to let the operator type one.
-                    prepTimeMinutes: prepTimeMinutes.replace(/[^0-9]/g, ''),
-                  }))
-                }
-                placeholder="e.g. 15"
-                keyboardType="number-pad"
-              />
-            </Field>
-
-            <Switch
-              value={draft.isAvailable}
-              onValueChange={(isAvailable) => setDraft((current) => ({ ...current, isAvailable }))}
-              label="Available to order"
-              description="Unavailable items are rejected by the API at order time."
+        <VStack gap={4}>
+          <Field label="Name" required error={fieldErrors.name}>
+            <Input
+              value={draft.name}
+              onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
+              placeholder="e.g. Margherita"
+              invalid={Boolean(fieldErrors.name)}
             />
-          </VStack>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setItemModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            loading={createItem.isPending || updateItem.isPending}
-            onPress={() => void submitItem()}
-          >
-            {draft.id ? 'Save changes' : 'Add item'}
-          </Button>
-        </DialogFooter>
+          </Field>
+
+          <Field label="Category" required error={fieldErrors.categoryId}>
+            <Select
+              value={draft.categoryId}
+              onChange={(categoryId) => setDraft((current) => ({ ...current, categoryId }))}
+              options={categoryOptions}
+              placeholder="Choose a category"
+              invalid={Boolean(fieldErrors.categoryId)}
+            />
+          </Field>
+
+          <Field label="Price" required error={fieldErrors.priceCents}>
+            <MoneyInput
+              value={draft.priceCents}
+              onChangeValue={(priceCents) => setDraft((current) => ({ ...current, priceCents }))}
+              invalid={Boolean(fieldErrors.priceCents)}
+            />
+          </Field>
+
+          <Field label="Description" helperText="Shown to staff when building an order.">
+            <Textarea
+              value={draft.description}
+              onChangeText={(description) => setDraft((current) => ({ ...current, description }))}
+              placeholder="Optional"
+            />
+          </Field>
+
+          <Field label="Prep time" helperText="Minutes. Leave blank to use the restaurant default.">
+            <Input
+              value={draft.prepTimeMinutes}
+              onChangeText={(prepTimeMinutes) =>
+                setDraft((current) => ({
+                  ...current,
+                  // Digits only: the API rejects a non-integer and there is no reason
+                  // to let the operator type one.
+                  prepTimeMinutes: prepTimeMinutes.replace(/[^0-9]/g, ''),
+                }))
+              }
+              placeholder="e.g. 15"
+              keyboardType="number-pad"
+            />
+          </Field>
+
+          <Switch
+            value={draft.isAvailable}
+            onValueChange={(isAvailable) => setDraft((current) => ({ ...current, isAvailable }))}
+            label="Available to order"
+            description="Unavailable items are rejected by the API at order time."
+          />
+        </VStack>
       </Modal>
 
       {/* -------------------------- Category modal -------------------------- */}
@@ -381,29 +390,35 @@ export default function MenuScreen() {
         onClose={() => setCategoryModalOpen(false)}
         title="Add category"
         size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setCategoryModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              loading={createCategory.isPending}
+              onPress={() => void submitCategory()}
+            >
+              Add category
+            </Button>
+          </>
+        }
       >
-        <DialogBody>
-          <Field label="Name" required>
-            <Input
-              value={categoryName}
-              onChangeText={setCategoryName}
-              placeholder="e.g. Desserts"
-              autoFocus
-            />
-          </Field>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setCategoryModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            loading={createCategory.isPending}
-            onPress={() => void submitCategory()}
-          >
-            Add category
-          </Button>
-        </DialogFooter>
+        <Field label="Name" required error={categoryError}>
+          <Input
+            value={categoryName}
+            invalid={Boolean(categoryError)}
+            onChangeText={(value) => {
+              setCategoryName(value)
+              // Clear the error as soon as the operator starts correcting it, rather than
+              // leaving a stale message under a field that is now valid.
+              if (categoryError) setCategoryError(undefined)
+            }}
+            placeholder="e.g. Desserts"
+            autoFocus
+          />
+        </Field>
       </Modal>
 
       {/* --------------------------- Delete confirm -------------------------- */}
@@ -413,15 +428,17 @@ export default function MenuScreen() {
         title={`Delete ${deleteTarget?.name ?? 'item'}?`}
         description="Items that appear on existing orders cannot be deleted — mark them unavailable instead."
         size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setDeleteTarget(null)}>
+              Keep item
+            </Button>
+            <Button variant="danger" loading={deleteItem.isPending} onPress={() => void confirmDelete()}>
+              Delete
+            </Button>
+          </>
+        }
       >
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setDeleteTarget(null)}>
-            Keep item
-          </Button>
-          <Button variant="danger" loading={deleteItem.isPending} onPress={() => void confirmDelete()}>
-            Delete
-          </Button>
-        </DialogFooter>
       </Modal>
     </VStack>
   )
@@ -499,10 +516,20 @@ function CategoryCard({
               accessibilityLabel={`${item.name} available to order`}
             />
 
-            <Button variant="ghost" size="sm" onPress={() => onEditItem(item)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => onEditItem(item)}
+              accessibilityLabel={`Edit ${item.name}`}
+            >
               Edit
             </Button>
-            <Button variant="ghost" size="sm" onPress={() => onDeleteItem(item)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => onDeleteItem(item)}
+              accessibilityLabel={`Delete ${item.name}`}
+            >
               Delete
             </Button>
           </HStack>

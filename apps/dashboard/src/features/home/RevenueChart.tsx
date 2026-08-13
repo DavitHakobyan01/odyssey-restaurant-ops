@@ -57,10 +57,21 @@ export function RevenueChart({ data, height = 180, currency = 'USD' }: RevenueCh
       return PADDING_TOP + usable - (value / peak) * usable
     }
 
-    const points = values.map((value, index) => ({
-      x: data.length > 1 ? index * stepX : width / 2,
-      y: toY(value),
-    }))
+    /**
+     * A single bucket is drawn as a full-width flat segment, not as one point.
+     *
+     * A path containing only a moveto ("M50,8") is valid SVG that renders nothing — no
+     * stroke, no area — so the chart went blank while the header still reported a peak.
+     * That state is reachable in normal use: the "today" range during the first hour of
+     * service, and the "all time" range for the whole of a restaurant's first day.
+     */
+    const points =
+      data.length === 1 && values[0] !== undefined
+        ? [
+            { x: 0, y: toY(values[0]) },
+            { x: width, y: toY(values[0]) },
+          ]
+        : values.map((value, index) => ({ x: index * stepX, y: toY(value) }))
 
     const line = points
       .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)},${point.y.toFixed(2)}`)

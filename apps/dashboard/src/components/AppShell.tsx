@@ -13,7 +13,7 @@
  * back button and an in-app press all produce the same highlighted state with no syncing.
  */
 import type { ReactNode } from 'react'
-import { Platform, Pressable, ScrollView, View } from 'react-native'
+import { Pressable, ScrollView, View } from 'react-native'
 import { usePathname, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -25,6 +25,7 @@ import {
   useBreakpoint,
   useTheme,
   useThemeControls,
+  webCursor,
 } from '@odyssey/ui'
 
 import {
@@ -264,7 +265,7 @@ function BottomBar({
               gap: theme.spacing[1],
               minHeight: theme.layout.minTouchTarget,
               paddingVertical: theme.spacing[1],
-              ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+              ...webCursor('pointer'),
             }}
           >
             <entry.icon size={21} color={active ? theme.color.primary : theme.color.textSubtle} />

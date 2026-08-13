@@ -118,7 +118,19 @@ export default function HomeScreen() {
    * of "$0.00" would look like a broken dashboard, so the empty state names the actual
    * next step instead.
    */
-  const isEmpty = data.totalOrders === 0 && data.pendingOrders === 0 && data.revenueCents === 0
+  /**
+   * "No orders yet" must mean the database is empty, not that this range is quiet.
+   *
+   * pendingOrders and inProgressOrders are live queue depths and are NOT scoped to the
+   * selected range, so including them is what distinguishes a brand-new restaurant from
+   * an established one looking at a slow Tuesday. Without inProgressOrders the screen
+   * could claim there were no orders while a dozen sat in the kitchen.
+   */
+  const isEmpty =
+    data.totalOrders === 0 &&
+    data.pendingOrders === 0 &&
+    data.inProgressOrders === 0 &&
+    data.revenueCents === 0
 
   return (
     <VStack gap={6}>
@@ -136,8 +148,12 @@ export default function HomeScreen() {
 
       {isEmpty ? (
         <EmptyState
-          title="No orders yet"
-          description="Seed the demo data to populate the dashboard, or create your first order."
+          title={range === 'all' ? 'No orders yet' : 'Nothing in this range'}
+          description={
+            range === 'all'
+              ? 'Seed the demo data to populate the dashboard, or create your first order.'
+              : 'No orders were placed in this period. Try a wider range.'
+          }
           icon={<InboxIcon size={24} color={theme.color.textSubtle} />}
           action={
             <Button variant="primary" onPress={() => router.push('/orders')}>

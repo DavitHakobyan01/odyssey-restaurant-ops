@@ -18,8 +18,6 @@ import {
   Button,
   Card,
   Checkbox,
-  DialogBody,
-  DialogFooter,
   Divider,
   Drawer,
   EmptyState,
@@ -588,20 +586,20 @@ function ComponentsSection() {
         onClose={() => setModalOpen(false)}
         title="Example modal"
         description="Becomes a bottom sheet on small screens."
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onPress={() => setModalOpen(false)}>
+              Confirm
+            </Button>
+          </>
+        }
       >
-        <DialogBody>
-          <Text variant="bodySm">
-            The body scrolls independently while the header and footer stay fixed.
-          </Text>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onPress={() => setModalOpen(false)}>
-            Confirm
-          </Button>
-        </DialogFooter>
+        <Text variant="bodySm">
+          The body scrolls independently while the header and footer stay fixed.
+        </Text>
       </Modal>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="Example drawer">

@@ -33,7 +33,12 @@ export default function CustomerDetailScreen() {
 
   const { data: customer, isPending, isError, error, refetch } = useGetCustomer(id)
 
-  const { data: orders, isPending: ordersPending } = useListOrders({
+  const {
+    data: orders,
+    isPending: ordersPending,
+    isError: ordersFailed,
+    refetch: refetchOrders,
+  } = useListOrders({
     customerId: id,
     limit: 10,
     sortBy: 'placedAt',
@@ -122,11 +127,24 @@ export default function CustomerDetailScreen() {
           onRowPress={(row) => router.push(`/orders/${row.id}`)}
           accessibilityLabel="Recent orders for this customer"
           emptyState={
-            <EmptyState
-              size="sm"
-              title="No orders yet"
-              description="Orders placed by this customer will appear here."
-            />
+            /*
+             * A failed request is not an empty result. Without this branch the table
+             * rendered "No orders yet" beside a stat tile showing a real order count —
+             * two figures on one screen contradicting each other.
+             */
+            ordersFailed ? (
+              <ErrorState
+                size="sm"
+                title="Could not load recent orders"
+                onRetry={() => void refetchOrders()}
+              />
+            ) : (
+              <EmptyState
+                size="sm"
+                title="No orders yet"
+                description="Orders placed by this customer will appear here."
+              />
+            )
           }
           columns={[
             {

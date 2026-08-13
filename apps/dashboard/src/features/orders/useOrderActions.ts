@@ -9,14 +9,11 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
-import {
-  ApiClientError,
-  getGetOrderQueryKey,
-  getListOrdersQueryKey,
-  useTransitionOrder,
-} from '@odyssey/api-client'
+import { ApiClientError, getGetOrderQueryKey, useTransitionOrder } from '@odyssey/api-client'
 import { ORDER_STATUS_LABEL, ORDER_TRANSITIONS, type OrderAction } from '@odyssey/types/domain'
 import { useToast } from '@odyssey/ui'
+
+import { invalidateOrderDependents } from '../../lib/cache'
 
 /**
  * Map a failed transition onto a message worth reading.
@@ -59,13 +56,14 @@ export function useOrderActions() {
         const updated = await mutateAsync({ id: orderId, data: { action, reason } })
 
         /**
-         * Invalidate both the specific order and every order list. The list is
-         * status-filtered, so an accepted order must disappear from a "pending" view —
-         * updating only the detail cache would leave the list visibly stale.
+         * A transition changes more than the order. The list is status-filtered, so an
+         * accepted order must leave a "pending" view; and the KPIs and CRM aggregates are
+         * derived from the same rows — cancelling in particular removes money from
+         * revenue and from the customer's lifetime spend. See lib/cache.ts.
          */
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) }),
-          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() }),
+          invalidateOrderDependents(queryClient, updated.customerId),
         ])
 
         toast.success(

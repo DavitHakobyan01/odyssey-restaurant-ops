@@ -25,8 +25,6 @@ import {
   Badge,
   Button,
   Card,
-  DialogBody,
-  DialogFooter,
   Divider,
   ErrorState,
   Field,
@@ -35,6 +33,7 @@ import {
   PageHeader,
   Skeleton,
   Spacer,
+  StatusDot,
   Table,
   Text,
   Textarea,
@@ -278,14 +277,9 @@ export default function OrderDetailScreen() {
             <VStack gap={3}>
               {timeline.map((entry) => (
                 <HStack key={entry.label} gap={3} align="center">
-                  <VStack
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: theme.radius.full,
-                      backgroundColor: theme.color.primary,
-                    }}
-                  />
+                  {/* The exported primitive, not a hand-drawn View — a spacing retune
+                      must move this dot with every other one in the product. */}
+                  <StatusDot tone="primary" />
                   <Text variant="bodySm" weight="500">
                     {entry.label}
                   </Text>
@@ -306,37 +300,37 @@ export default function OrderDetailScreen() {
         title="Cancel this order?"
         description="Cancelling is final — a cancelled order cannot be reopened."
         size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onPress={() => setCancelOpen(false)}>
+              Keep order
+            </Button>
+            <Button
+              variant="danger"
+              loading={runningAction === 'cancel'}
+              onPress={() => void confirmCancel()}
+            >
+              Cancel order
+            </Button>
+          </>
+        }
       >
-        <DialogBody>
-          <Field
-            label="Reason"
-            required
-            error={cancelError}
-            helperText="Recorded against the order for reporting."
-          >
-            <Textarea
-              value={cancelReason}
-              onChangeText={(value) => {
-                setCancelReason(value)
-                if (cancelError) setCancelError(undefined)
-              }}
-              placeholder="e.g. Customer called to cancel"
-              invalid={Boolean(cancelError)}
-            />
-          </Field>
-        </DialogBody>
-        <DialogFooter>
-          <Button variant="secondary" onPress={() => setCancelOpen(false)}>
-            Keep order
-          </Button>
-          <Button
-            variant="danger"
-            loading={runningAction === 'cancel'}
-            onPress={() => void confirmCancel()}
-          >
-            Cancel order
-          </Button>
-        </DialogFooter>
+        <Field
+          label="Reason"
+          required
+          error={cancelError}
+          helperText="Recorded against the order for reporting."
+        >
+          <Textarea
+            value={cancelReason}
+            onChangeText={(value) => {
+              setCancelReason(value)
+              if (cancelError) setCancelError(undefined)
+            }}
+            placeholder="e.g. Customer called to cancel"
+            invalid={Boolean(cancelError)}
+          />
+        </Field>
       </Modal>
     </VStack>
   )
