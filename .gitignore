@@ -1,0 +1,32 @@
+node_modules/
+dist/
+build/
+coverage/
+
+# turbo
+.turbo/
+
+# expo
+.expo/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# cloudflare / wrangler
+.wrangler/
+.dev.vars
+
+# env
+.env
+.env.local
+.env.*.local
+
+# editor / os
+.DS_Store
+.idea/
+*.log
+*.tsbuildinfo

@@ -1,0 +1,38 @@
+{
+  "name": "odyssey-restaurant-ops",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20 <=22 || >=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:dashboard": "pnpm --filter @odyssey/dashboard dev",
+    "dev:backend": "pnpm --filter @odyssey/backend dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "gen:contract": "turbo run gen:openapi && turbo run gen:client",
+    "db:generate": "pnpm --filter @odyssey/backend db:generate",
+    "db:migrate": "pnpm --filter @odyssey/backend db:migrate",
+    "db:seed": "pnpm --filter @odyssey/backend db:seed",
+    "db:studio": "pnpm --filter @odyssey/backend db:studio",
+    "bootstrap": "pnpm db:migrate && pnpm db:seed",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod": "4.4.3"
+    }
+  }
+}

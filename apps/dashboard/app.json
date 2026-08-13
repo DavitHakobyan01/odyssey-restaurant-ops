@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Odyssey Restaurant Ops",
+    "slug": "odyssey-restaurant-ops",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "odyssey",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
