@@ -159,7 +159,10 @@ export function Card({
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
 
-  const isInteractive = (interactive || onPress !== undefined) && !disabled
+  // A disabled card stays a Pressable so it still announces `disabled` to assistive tech —
+  // swapping it for a plain View would make it silently vanish from the a11y tree.
+  const isPressable = interactive || onPress !== undefined
+  const isInteractive = isPressable && !disabled
   const restingVisual = resolveVisual(theme, elevation, {
     interactive: isInteractive,
     hovered,
@@ -225,10 +228,10 @@ export function Card({
         style,
       ]}
     >
-      {isInteractive ? (
+      {isPressable ? (
         <Pressable
           testID={testID}
-          onPress={onPress}
+          onPress={disabled ? undefined : onPress}
           disabled={disabled}
           onHoverIn={() => setHovered(true)}
           onHoverOut={() => setHovered(false)}
@@ -240,7 +243,7 @@ export function Card({
           style={({ pressed }) =>
             surfaceStyle(
               resolveVisual(theme, elevation, {
-                interactive: true,
+                interactive: isInteractive,
                 hovered,
                 pressed,
                 disabled,

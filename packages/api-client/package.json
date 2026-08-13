@@ -21,7 +21,8 @@
     "@odyssey/eslint-config": "workspace:*",
     "orval": "^8.24.0",
     "typescript": "^5.7.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "eslint": "^9.18.0"
   },
   "peerDependencies": {
     "react": "*"

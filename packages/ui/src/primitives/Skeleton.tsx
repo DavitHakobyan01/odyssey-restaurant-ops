@@ -56,6 +56,16 @@ const PULSE_MIN = 0
 const PULSE_MAX = 1
 
 /**
+ * Half-cycle of the pulse, in ms.
+ *
+ * Deliberately not one of the `motion.duration` tokens: those are calibrated for feedback
+ * about something the operator just did (80–320ms), and a loading placeholder breathing
+ * at that rate reads as a flashing error. This is ambient motion and belongs on its own,
+ * slower clock.
+ */
+const PULSE_DURATION = 900
+
+/**
  * Shared pulse driver.
  *
  * Returns an `Animated.Value` cycling 0 -> 1 -> 0 forever. The loop is stopped and the
@@ -75,15 +85,13 @@ function usePulse(enabled: boolean): Animated.Value {
       Animated.sequence([
         Animated.timing(value, {
           toValue: PULSE_MAX,
-          // Deliberately slower than the interaction durations in `motion`: this is
-          // ambient breathing, not feedback about something the operator just did.
-          duration: 900,
+          duration: PULSE_DURATION,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(value, {
           toValue: PULSE_MIN,
-          duration: 900,
+          duration: PULSE_DURATION,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
@@ -133,7 +141,7 @@ export function Skeleton({
     >
       <Animated.View
         style={{
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           backgroundColor: theme.color.skeletonHighlight,
           opacity: pulse,
         }}

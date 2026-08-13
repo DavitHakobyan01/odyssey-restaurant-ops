@@ -30,6 +30,7 @@ import {
 } from 'react-native'
 import type { ReactNode } from 'react'
 
+import { webCursor } from '../theme/platform'
 import { useTheme } from '../theme/ThemeProvider'
 import type { Theme } from '../tokens'
 import { Text } from './Text'
@@ -199,7 +200,7 @@ export function Button({
             borderColor: visual.border,
             // Communicates non-interactivity without hiding the label entirely.
             opacity: disabled ? 0.7 : 1,
-            cursor: interactionBlocked ? 'not-allowed' : 'pointer',
+            ...webCursor(interactionBlocked ? 'not-allowed' : 'pointer'),
           }
         }}
       >

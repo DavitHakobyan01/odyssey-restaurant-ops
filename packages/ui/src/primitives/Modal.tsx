@@ -183,10 +183,15 @@ export type DialogBodyProps = {
 /**
  * The only scrolling region.
  *
- * `flexShrink: 1` is the load-bearing line: it lets the panel shrink to the space the
- * viewport actually offers, which is what keeps the header and footer pinned while the
- * content between them scrolls. Without it the panel grows past the screen and the footer
- * disappears off the bottom.
+ * The flex triple is load-bearing and deliberately not `flex: 1`:
+ *
+ *   `flexShrink: 1`   lets the body give up height so a dialog whose content overflows
+ *                     stays inside the viewport with its header and footer still pinned.
+ *   `flexGrow: 1`     pushes the footer to the bottom edge of a panel that has a definite
+ *                     height (the drawer, which is full-height).
+ *   `flexBasis: auto` keeps the body's natural content height as the starting point. The
+ *                     `flex: 1` shorthand would set a basis of 0 and collapse the body to
+ *                     nothing inside the modal, whose height is content-derived.
  */
 export function DialogBody({ children, style, testID }: DialogBodyProps) {
   const theme = useTheme()
@@ -196,7 +201,7 @@ export function DialogBody({ children, style, testID }: DialogBodyProps) {
   return (
     <ScrollView
       testID={testID}
-      style={[{ flexShrink: 1 }, style]}
+      style={[{ flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }, style]}
       contentContainerStyle={{
         padding: theme.spacing[5],
         gap: theme.spacing[4],
@@ -284,6 +289,12 @@ export type ModalProps = {
   showCloseButton?: boolean
   closeIcon?: ReactNode
   closeAccessibilityLabel?: string
+  /**
+   * Accessible name. Defaults to `title`, which is the right answer almost always —
+   * supply it only when the dialog has no visible title, so the dialog is never announced
+   * as an unnamed region.
+   */
+  accessibilityLabel?: string
   /** Escape hatch for the panel only — the backdrop is not stylable by design. */
   style?: StyleProp<ViewStyle>
   testID?: string
@@ -301,6 +312,7 @@ export function Modal({
   showCloseButton = true,
   closeIcon,
   closeAccessibilityLabel = 'Close',
+  accessibilityLabel,
   style,
   testID,
 }: ModalProps) {
@@ -372,7 +384,7 @@ export function Modal({
           role="dialog"
           aria-modal={true}
           accessibilityViewIsModal
-          accessibilityLabel={title}
+          accessibilityLabel={accessibilityLabel ?? title}
           style={[
             {
               width: '100%',

@@ -182,22 +182,26 @@ export function NavItem({
       style={({ pressed }) => {
         const visual = resolveVisual(theme, { active, hovered, pressed, disabled })
 
-        return [
-          {
-            // Full touch target even in the collapsed rail, which is the tablet layout.
-            height: theme.layout.minTouchTarget,
-            ...(collapsed ? { width: theme.layout.minTouchTarget } : { alignSelf: 'stretch' }),
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: collapsed ? theme.spacing[0] : theme.spacing[2.5],
-            paddingHorizontal: collapsed ? theme.spacing[0] : theme.spacing[3],
-            borderRadius: theme.radius.lg,
-            backgroundColor: visual.background,
-            cursor: disabled ? 'not-allowed' : 'pointer',
-          } as ViewStyle,
-          style,
-        ]
+        const box: ViewStyle = {
+          // Full touch target even in the collapsed rail, which is the tablet layout.
+          height: theme.layout.minTouchTarget,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: collapsed ? theme.spacing[0] : theme.spacing[2.5],
+          paddingHorizontal: collapsed ? theme.spacing[0] : theme.spacing[3],
+          borderRadius: theme.radius.lg,
+          backgroundColor: visual.background,
+          // React Native's `CursorValue` admits only 'auto' | 'pointer', so a disabled
+          // item drops back to the default cursor rather than showing 'not-allowed'.
+          cursor: disabled ? 'auto' : 'pointer',
+          // Collapsed items are square; expanded ones fill the rail's width.
+          ...(collapsed
+            ? { width: theme.layout.minTouchTarget }
+            : { alignSelf: 'stretch' as const }),
+        }
+
+        return [box, style]
       }}
     >
       {({ pressed }) => {

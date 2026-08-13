@@ -26,6 +26,10 @@
  *  5. **Arrow keys both move focus and select** (ARIA "automatic activation"). Tabs here
  *     switch a rendered section with no expensive fetch behind it, so requiring a second
  *     Enter press would only add a keystroke to every navigation.
+ *
+ *  6. **There is no disabled tab.** A section an operator is not allowed to open should
+ *     not be listed at all — a greyed-out tab advertises a destination while refusing it.
+ *     The remaining four states (rest, hover, pressed, focus) are all explicit below.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
