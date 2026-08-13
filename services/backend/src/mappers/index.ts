@@ -30,10 +30,21 @@ import type {
   RestaurantSettingsRow,
 } from '@odyssey/types/db'
 
-export const toIso = (value: Date): string => value.toISOString()
+/**
+ * Timestamp columns selected normally arrive as `Date`. Aggregates written as raw `sql`
+ * fragments bypass Drizzle's type parsing and arrive as driver strings instead.
+ *
+ * Repositories are expected to fix that at the source with `.mapWith(column)` — and they
+ * do — but accepting both here means a future raw-SQL aggregate degrades into a correct
+ * ISO string rather than a 500 from `.toISOString is not a function`. The contract is
+ * satisfied either way, which is the point: the API's output shape should not depend on
+ * which query style produced the row.
+ */
+export const toIso = (value: Date | string): string =>
+  typeof value === 'string' ? new Date(value).toISOString() : value.toISOString()
 
-export const toIsoOrNull = (value: Date | null): string | null =>
-  value === null ? null : value.toISOString()
+export const toIsoOrNull = (value: Date | string | null): string | null =>
+  value === null || value === undefined ? null : toIso(value)
 
 /* ---------------------------------- Menu ---------------------------------- */
 
@@ -75,7 +86,7 @@ export function toCustomer(row: CustomerRow): Customer {
 export type CustomerStatsRow = CustomerRow & {
   orderCount: number
   totalSpentCents: number
-  lastOrderAt: Date | null
+  lastOrderAt: Date | string | null
 }
 
 export function toCustomerWithStats(row: CustomerStatsRow): CustomerWithStats {
