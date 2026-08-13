@@ -8,6 +8,7 @@
  */
 import { render } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 
 import { ThemeProvider } from '@odyssey/ui'
@@ -16,8 +17,25 @@ import { RevenueChart } from '../src/features/home/RevenueChart'
 
 const ISO = '2026-08-13T10:00:00.000Z'
 
+/**
+ * The chart formats its peak through `useMoney()`, which reads the restaurant's currency
+ * from the settings query, so it needs a QueryClient even though nothing here asserts on
+ * network data.
+ *
+ * Queries are disabled rather than stubbed: this suite is about SVG geometry, and leaving
+ * the settings query unresolved exercises exactly the fallback the app uses while it is in
+ * flight — `'USD'` — which is what the peak assertion below expects.
+ */
 function renderChart(ui: ReactNode) {
-  return render(<ThemeProvider initialPreference="light">{ui}</ThemeProvider>)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { enabled: false, retry: false } },
+  })
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider initialPreference="light">{ui}</ThemeProvider>
+    </QueryClientProvider>,
+  )
 }
 
 /** Any NaN reaching an SVG path attribute makes the whole path silently fail to draw. */

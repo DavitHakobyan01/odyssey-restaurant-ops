@@ -9,19 +9,11 @@
  * Cancelled orders are excluded from every aggregate by the backend — a cancelled order
  * is not spend.
  */
-import { useMemo, useState } from 'react'
-import { keepPreviousData } from '@tanstack/react-query'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useRouter } from 'expo-router'
 
-import {
-  ApiClientError,
-  getListCustomersQueryKey,
-  useCreateCustomer,
-  useListCustomers,
-} from '@odyssey/api-client'
-import type { CustomerWithStats, ListCustomersParams, ListCustomersSortBy } from '@odyssey/api-client'
-import { formatMoney, formatRelativeTime, pluralize } from '@odyssey/shared'
+import type { CustomerWithStats } from '@odyssey/api-client'
+import { formatRelativeTime, pluralize } from '@odyssey/shared'
 import {
   Avatar,
   Button,
@@ -38,79 +30,18 @@ import {
   Textarea,
   VStack,
   useTheme,
-  useToast,
 } from '@odyssey/ui'
 
 import { CustomersIcon, SearchIcon } from '../../../src/components/icons'
-import { useDebouncedValue } from '../../../src/features/orders/useDebouncedValue'
-
-const PAGE_SIZE = 25
+import { Pagination } from '../../../src/components/Pagination'
+import { useCustomerList } from '../../../src/features/crm/useCustomerList'
+import { useMoney } from '../../../src/lib/useMoney'
 
 export default function CrmScreen() {
   const theme = useTheme()
   const router = useRouter()
-  const toast = useToast()
-  const queryClient = useQueryClient()
-
-  const [searchInput, setSearchInput] = useState('')
-  const [sortBy, setSortBy] = useState<ListCustomersSortBy>('lastOrderAt')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [offset, setOffset] = useState(0)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [draft, setDraft] = useState({ name: '', email: '', phone: '', notes: '' })
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  const search = useDebouncedValue(searchInput, 300)
-
-  const params = useMemo<ListCustomersParams>(() => {
-    const next: ListCustomersParams = { limit: PAGE_SIZE, offset, sortBy, sortDir }
-    if (search.trim().length > 0) next.search = search.trim()
-    return next
-  }, [offset, sortBy, sortDir, search])
-
-  const { data, isPending, isError, error, refetch, isFetching } = useListCustomers(params, {
-    query: { placeholderData: keepPreviousData },
-  })
-
-  const createCustomer = useCreateCustomer()
-
-  const submit = async () => {
-    const errors: Record<string, string> = {}
-    if (draft.name.trim().length === 0) errors.name = 'Name is required.'
-    if (!/^\S+@\S+\.\S+$/.test(draft.email.trim())) errors.email = 'Enter a valid email address.'
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      return
-    }
-
-    try {
-      await createCustomer.mutateAsync({
-        data: {
-          name: draft.name.trim(),
-          email: draft.email.trim(),
-          phone: draft.phone.trim() === '' ? null : draft.phone.trim(),
-          notes: draft.notes.trim() === '' ? null : draft.notes.trim(),
-        },
-      })
-      await queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() })
-      toast.success('Customer added', draft.name.trim())
-      setDraft({ name: '', email: '', phone: '', notes: '' })
-      setFieldErrors({})
-      setCreateOpen(false)
-    } catch (caught) {
-      if (caught instanceof ApiClientError) {
-        // A duplicate email comes back as 409 with the offending field named.
-        setFieldErrors(
-          caught.code === 'CONFLICT'
-            ? { email: caught.message, ...caught.fieldErrors }
-            : caught.fieldErrors,
-        )
-        toast.error('Could not add the customer', caught.message)
-      } else {
-        toast.error('Could not add the customer', 'Please try again.')
-      }
-    }
-  }
+  const money = useMoney()
+  const list = useCustomerList()
 
   const columns = useMemo(
     () => [
@@ -150,7 +81,7 @@ export default function CrmScreen() {
         sortable: true,
         render: (row: CustomerWithStats) => (
           <Text variant="bodySm" numeric weight="600">
-            {formatMoney(row.totalSpentCents)}
+            {money.format(row.totalSpentCents)}
           </Text>
         ),
       },
@@ -162,7 +93,7 @@ export default function CrmScreen() {
         hideOnMobile: true,
         render: (row: CustomerWithStats) => (
           <Text variant="bodySm" numeric tone="muted">
-            {formatMoney(row.averageOrderValueCents)}
+            {money.format(row.averageOrderValueCents)}
           </Text>
         ),
       },
@@ -178,27 +109,29 @@ export default function CrmScreen() {
         ),
       },
     ],
-    [],
+    [money],
   )
 
-  if (isError) {
+  if (list.isError) {
     return (
       <VStack gap={6}>
         <PageHeader title="Customers" />
-        <ErrorState title="Could not load customers" error={error} onRetry={() => void refetch()} />
+        <ErrorState
+          title="Could not load customers"
+          error={list.error}
+          onRetry={() => void list.refetch()}
+        />
       </VStack>
     )
   }
-
-  const total = data?.pagination.total ?? 0
 
   return (
     <VStack gap={5}>
       <PageHeader
         title="Customers"
-        description={isPending ? 'Loading…' : pluralize(total, 'customer')}
+        description={list.isPending ? 'Loading…' : pluralize(list.total, 'customer')}
         actions={
-          <Button variant="primary" onPress={() => setCreateOpen(true)}>
+          <Button variant="primary" onPress={list.openCreate}>
             Add customer
           </Button>
         }
@@ -206,11 +139,8 @@ export default function CrmScreen() {
 
       <Card padding={4}>
         <Input
-          value={searchInput}
-          onChangeText={(value) => {
-            setSearchInput(value)
-            setOffset(0)
-          }}
+          value={list.searchInput}
+          onChangeText={list.setSearch}
           placeholder="Search by name or email"
           leftSlot={<SearchIcon size={16} color={theme.color.textSubtle} />}
           accessibilityLabel="Search customers"
@@ -219,25 +149,21 @@ export default function CrmScreen() {
 
       <Card padding={0}>
         <Table
-          data={data?.data ?? []}
+          data={list.customers}
           columns={columns}
           keyExtractor={(row) => row.id}
-          loading={isPending}
+          loading={list.isPending}
           loadingRowCount={8}
           onRowPress={(row) => router.push(`/crm/${row.id}`)}
           accessibilityLabel="Customers"
-          sortBy={sortBy}
-          sortDir={sortDir}
-          onSortChange={(key, direction) => {
-            setSortBy(key as ListCustomersSortBy)
-            setSortDir(direction)
-            setOffset(0)
-          }}
+          sortBy={list.sortBy}
+          sortDir={list.sortDir}
+          onSortChange={list.setSort}
           emptyState={
             <EmptyState
-              title={search ? 'No customers match that search' : 'No customers yet'}
+              title={list.search ? 'No customers match that search' : 'No customers yet'}
               description={
-                search
+                list.search
                   ? 'Try a different name or email.'
                   : 'Customers are created automatically when an order is placed for a new email.'
               }
@@ -247,78 +173,67 @@ export default function CrmScreen() {
         />
       </Card>
 
-      {total > PAGE_SIZE ? (
-        <HStack gap={3} align="center" justify="flex-end">
-          <Text variant="bodySm" tone="muted">
-            {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={offset === 0 || isFetching}
-            onPress={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!data?.pagination.hasMore || isFetching}
-            onPress={() => setOffset((current) => current + PAGE_SIZE)}
-          >
-            Next
-          </Button>
-        </HStack>
-      ) : null}
+      <Pagination
+        offset={list.offset}
+        pageSize={list.pageSize}
+        total={list.total}
+        hasMore={list.hasMore}
+        busy={list.isFetching}
+        onOffsetChange={list.setOffset}
+      />
 
       <Modal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={list.isCreateOpen}
+        onClose={list.closeCreate}
         title="Add customer"
         description="Email must be unique — it is how repeat orders are linked to one history."
         footer={
           <>
-            <Button variant="secondary" onPress={() => setCreateOpen(false)}>
+            <Button variant="secondary" onPress={list.closeCreate}>
               Cancel
             </Button>
-            <Button variant="primary" loading={createCustomer.isPending} onPress={() => void submit()}>
+            <Button
+              variant="primary"
+              loading={list.isCreating}
+              onPress={() => void list.submitCreate()}
+            >
               Add customer
             </Button>
           </>
         }
       >
         <VStack gap={4}>
-          <Field label="Name" required error={fieldErrors.name}>
+          <Field label="Name" required error={list.fieldErrors.name}>
             <Input
-              value={draft.name}
-              onChangeText={(name) => setDraft((current) => ({ ...current, name }))}
+              value={list.draft.name}
+              onChangeText={(name) => list.updateDraft('name', name)}
               placeholder="e.g. Amara Okafor"
-              invalid={Boolean(fieldErrors.name)}
+              invalid={Boolean(list.fieldErrors.name)}
               autoFocus
             />
           </Field>
-          <Field label="Email" required error={fieldErrors.email}>
+          <Field label="Email" required error={list.fieldErrors.email}>
             <Input
-              value={draft.email}
-              onChangeText={(email) => setDraft((current) => ({ ...current, email }))}
+              value={list.draft.email}
+              onChangeText={(email) => list.updateDraft('email', email)}
               placeholder="name@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
-              invalid={Boolean(fieldErrors.email)}
+              invalid={Boolean(list.fieldErrors.email)}
             />
           </Field>
-          <Field label="Phone" error={fieldErrors.phone}>
+          <Field label="Phone" error={list.fieldErrors.phone}>
             <Input
-              value={draft.phone}
-              onChangeText={(phone) => setDraft((current) => ({ ...current, phone }))}
+              value={list.draft.phone}
+              onChangeText={(phone) => list.updateDraft('phone', phone)}
               placeholder="Optional"
               keyboardType="phone-pad"
             />
           </Field>
           <Field label="Notes">
             <Textarea
-              value={draft.notes}
-              onChangeText={(notes) => setDraft((current) => ({ ...current, notes }))}
+              value={list.draft.notes}
+              onChangeText={(notes) => list.updateDraft('notes', notes)}
               placeholder="Allergies, preferences, anything the kitchen should know"
             />
           </Field>

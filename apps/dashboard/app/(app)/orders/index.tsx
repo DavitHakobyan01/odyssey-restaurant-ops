@@ -6,23 +6,20 @@
  * rows that happen to be on screen produces a confidently wrong answer when there are
  * 140 orders behind them.
  *
- * Search is debounced, so typing an order number issues one request rather than one per
- * keystroke — each of which would open its own database connection on the Worker.
+ * The query itself — filters, debounced search, params and paging — lives in
+ * `useOrdersList`, so this file is the filter bar, the columns and the layout.
  */
 import { useMemo, useState } from 'react'
-import { keepPreviousData } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 
-import { useListOrders } from '@odyssey/api-client'
-import type { ListOrdersParams, ListOrdersSortBy, OrderSummary } from '@odyssey/api-client'
-import { formatMoney, formatRelativeTime, pluralize } from '@odyssey/shared'
+import type { OrderSummary } from '@odyssey/api-client'
+import { formatRelativeTime, pluralize } from '@odyssey/shared'
 import {
   ORDER_STATUSES,
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
   ORDER_TYPES,
   ORDER_TYPE_LABEL,
-  type OrderStatus,
 } from '@odyssey/types/domain'
 import {
   Badge,
@@ -39,70 +36,42 @@ import {
   Table,
   Text,
   VStack,
-  useBreakpoint,
   useTheme,
 } from '@odyssey/ui'
 
 import { InboxIcon, SearchIcon } from '../../../src/components/icons'
+import { Pagination } from '../../../src/components/Pagination'
 import { CreateOrderModal } from '../../../src/features/orders/CreateOrderModal'
-import { useDebouncedValue } from '../../../src/features/orders/useDebouncedValue'
-
-const PAGE_SIZE = 25
+import { useOrdersList } from '../../../src/features/orders/useOrdersList'
+import { useMoney } from '../../../src/lib/useMoney'
 
 export default function OrdersScreen() {
   const router = useRouter()
   const theme = useTheme()
-  const breakpoint = useBreakpoint()
+  const money = useMoney()
 
-  const [statuses, setStatuses] = useState<OrderStatus[]>([])
-  const [type, setType] = useState<string>('')
-  const [searchInput, setSearchInput] = useState('')
-  const [sortBy, setSortBy] = useState<ListOrdersSortBy>('placedAt')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [offset, setOffset] = useState(0)
+  const {
+    filters,
+    hasFilters,
+    changeStatuses,
+    changeType,
+    changeSearch,
+    changeSort,
+    resetFilters,
+    offset,
+    setOffset,
+    pageSize,
+    rows,
+    total,
+    hasMore,
+    isPending,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useOrdersList()
+
   const [createOpen, setCreateOpen] = useState(false)
-
-  const search = useDebouncedValue(searchInput, 300)
-
-  /**
-   * Built as one memoised object so the query key is stable — rebuilding it inline on
-   * every render would give React Query a new key each time and refetch continuously.
-   *
-   * Empty values are omitted rather than sent as empty strings, because the API validates
-   * `search` with a minimum length of 1 and would reject `?search=`.
-   */
-  const params = useMemo<ListOrdersParams>(() => {
-    const next: ListOrdersParams = { limit: PAGE_SIZE, offset, sortBy, sortDir }
-    if (statuses.length > 0) next.status = statuses
-    if (type) next.type = type as ListOrdersParams['type']
-    if (search.trim().length > 0) next.search = search.trim()
-    return next
-  }, [offset, sortBy, sortDir, statuses, type, search])
-
-  /**
-   * `keepPreviousData` matters for pagination: without it, pressing Next swaps the table
-   * for skeleton rows and the page visibly jumps. With it the current page stays on
-   * screen until the next one arrives, and only `isFetching` flips. The very first load
-   * still shows skeletons, because there is nothing to keep.
-   */
-  const { data, isPending, isError, error, refetch, isFetching } = useListOrders(params, {
-    query: { placeholderData: keepPreviousData },
-  })
-
-  const hasFilters = statuses.length > 0 || type !== '' || search.trim().length > 0
-
-  const resetFilters = () => {
-    setStatuses([])
-    setType('')
-    setSearchInput('')
-    setOffset(0)
-  }
-
-  /** Any filter change must return to page one, or the operator lands on an empty page. */
-  const onFilterChange = <T,>(setter: (value: T) => void) => (value: T) => {
-    setter(value)
-    setOffset(0)
-  }
 
   const columns = useMemo(
     () => [
@@ -165,7 +134,7 @@ export default function OrdersScreen() {
         sortable: true,
         render: (row: OrderSummary) => (
           <Text variant="bodySm" numeric weight="500">
-            {formatMoney(row.totalCents)}
+            {money.format(row.totalCents)}
           </Text>
         ),
       },
@@ -181,7 +150,7 @@ export default function OrdersScreen() {
         ),
       },
     ],
-    [],
+    [money],
   )
 
   if (isError) {
@@ -197,9 +166,6 @@ export default function OrdersScreen() {
       </VStack>
     )
   }
-
-  const total = data?.pagination.total ?? 0
-  const rows = data?.data ?? []
 
   return (
     <VStack gap={5}>
@@ -225,8 +191,8 @@ export default function OrdersScreen() {
         <HStack gap={3} wrap align="flex-end">
           <VStack gap={1} style={{ flex: 1, minWidth: 220 }}>
             <Input
-              value={searchInput}
-              onChangeText={onFilterChange(setSearchInput)}
+              value={filters.searchInput}
+              onChangeText={changeSearch}
               placeholder="Search order number, customer or email"
               leftSlot={<SearchIcon size={16} color={theme.color.textSubtle} />}
               accessibilityLabel="Search orders"
@@ -236,8 +202,8 @@ export default function OrdersScreen() {
 
           <VStack gap={1} style={{ minWidth: 200 }}>
             <MultiSelect
-              value={statuses}
-              onChange={onFilterChange(setStatuses)}
+              value={filters.statuses}
+              onChange={changeStatuses}
               placeholder="All statuses"
               accessibilityLabel="Filter by status"
               options={ORDER_STATUSES.map((status) => ({
@@ -249,8 +215,8 @@ export default function OrdersScreen() {
 
           <VStack gap={1} style={{ minWidth: 160 }}>
             <Select
-              value={type}
-              onChange={onFilterChange(setType)}
+              value={filters.type}
+              onChange={changeType}
               placeholder="All types"
               accessibilityLabel="Filter by order type"
               options={[
@@ -277,13 +243,9 @@ export default function OrdersScreen() {
           loadingRowCount={8}
           onRowPress={(row) => router.push(`/orders/${row.id}`)}
           accessibilityLabel="Orders"
-          sortBy={sortBy}
-          sortDir={sortDir}
-          onSortChange={(key, direction) => {
-            setSortBy(key as ListOrdersSortBy)
-            setSortDir(direction)
-            setOffset(0)
-          }}
+          sortBy={filters.sortBy}
+          sortDir={filters.sortDir}
+          onSortChange={changeSort}
           emptyState={
             <EmptyState
               title={hasFilters ? 'No orders match these filters' : 'No orders yet'}
@@ -305,29 +267,14 @@ export default function OrdersScreen() {
         />
       </Card>
 
-      {total > PAGE_SIZE ? (
-        <HStack gap={3} align="center" justify={breakpoint === 'sm' ? 'center' : 'flex-end'}>
-          <Text variant="bodySm" tone="muted">
-            {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total}
-          </Text>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={offset === 0 || isFetching}
-            onPress={() => setOffset((current) => Math.max(0, current - PAGE_SIZE))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!data?.pagination.hasMore || isFetching}
-            onPress={() => setOffset((current) => current + PAGE_SIZE)}
-          >
-            Next
-          </Button>
-        </HStack>
-      ) : null}
+      <Pagination
+        offset={offset}
+        pageSize={pageSize}
+        total={total}
+        hasMore={hasMore}
+        busy={isFetching}
+        onOffsetChange={setOffset}
+      />
     </VStack>
   )
 }

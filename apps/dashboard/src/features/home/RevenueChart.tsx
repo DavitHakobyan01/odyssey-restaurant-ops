@@ -20,20 +20,21 @@ import { View } from 'react-native'
 import Svg, { Defs, LinearGradient, Path, Stop, Line as SvgLine } from 'react-native-svg'
 
 import type { DashboardOverviewRevenueTrendItem } from '@odyssey/api-client'
-import { formatMoneyCompact } from '@odyssey/shared'
 import { HStack, Text, VStack, useTheme } from '@odyssey/ui'
+
+import { useMoney } from '../../lib/useMoney'
 
 export type RevenueChartProps = {
   data: DashboardOverviewRevenueTrendItem[]
   height?: number
-  currency?: string
 }
 
 const PADDING_TOP = 8
 const PADDING_BOTTOM = 4
 
-export function RevenueChart({ data, height = 180, currency = 'USD' }: RevenueChartProps) {
+export function RevenueChart({ data, height = 180 }: RevenueChartProps) {
   const theme = useTheme()
+  const money = useMoney()
 
   const { areaPath, linePath, peakCents, hasRevenue } = useMemo(() => {
     // Fixed viewBox width with preserveAspectRatio="none" lets the SVG stretch to any
@@ -93,7 +94,7 @@ export function RevenueChart({ data, height = 180, currency = 'USD' }: RevenueCh
     <VStack gap={2}>
       <HStack justify="space-between" align="center">
         <Text variant="caption" tone="subtle">
-          Peak {formatMoneyCompact(peakCents, { currency })}
+          Peak {money.compact(peakCents)}
         </Text>
         <Text variant="caption" tone="subtle">
           {data.length} {data.length === 1 ? 'bucket' : 'buckets'}

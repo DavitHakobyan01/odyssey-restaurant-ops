@@ -1,26 +1,17 @@
 /**
  * Home — the operations overview.
  *
- * Every figure on this screen comes from a single `GET /stats/overview` request. That is
- * deliberate: six separate KPI requests would each open their own Worker-scoped database
- * connection and could observe the database at six different instants, so the tiles and
- * the chart would not reconcile with each other. One request, one snapshot.
- *
- * The screen performs no arithmetic of its own. Revenue is summed in SQL, averages are
- * computed server-side, and cancelled orders are already excluded — summing a *page* of
- * results in the client would produce a confidently wrong number.
+ * Every figure on this screen comes from a single `GET /stats/overview` request, and the
+ * screen performs no arithmetic of its own. Both properties are enforced by
+ * `useDashboardOverview`, which owns the request and everything derived from it; this
+ * file is layout only.
  */
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'expo-router'
 
-import { useGetDashboardOverview } from '@odyssey/api-client'
 import type { GetDashboardOverviewRange } from '@odyssey/api-client'
-import { formatMoney, formatMoneyCompact, pluralize } from '@odyssey/shared'
-import {
-  ORDER_STATUSES,
-  ORDER_STATUS_LABEL,
-  ORDER_STATUS_TONE,
-} from '@odyssey/types/domain'
+import { pluralize } from '@odyssey/shared'
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@odyssey/types/domain'
 import {
   Alert,
   Badge,
@@ -41,6 +32,8 @@ import {
 
 import { KpiTile, KpiTileSkeleton } from '../../src/features/home/KpiTile'
 import { RevenueChart } from '../../src/features/home/RevenueChart'
+import { useDashboardOverview } from '../../src/features/home/useDashboardOverview'
+import { useMoney } from '../../src/lib/useMoney'
 import { ClockIcon, InboxIcon, OrdersIcon, RevenueIcon } from '../../src/components/icons'
 
 const RANGES: { key: GetDashboardOverviewRange; label: string }[] = [
@@ -54,19 +47,11 @@ export default function HomeScreen() {
   const theme = useTheme()
   const router = useRouter()
   const breakpoint = useBreakpoint()
+  const money = useMoney()
   const [range, setRange] = useState<GetDashboardOverviewRange>('today')
 
-  const { data, isPending, isError, error, refetch } = useGetDashboardOverview({ range })
-
-  /**
-   * The API guarantees every status is present, including zeros. Re-deriving the list
-   * from ORDER_STATUSES rather than from the response keeps the chip order stable across
-   * ranges — sorting by count would make chips jump around as data changes.
-   */
-  const statusCounts = useMemo(() => {
-    const byStatus = new Map(data?.ordersByStatus.map((entry) => [entry.status, entry.count]))
-    return ORDER_STATUSES.map((status) => ({ status, count: byStatus.get(status) ?? 0 }))
-  }, [data])
+  const { data, isPending, isError, error, refetch, statusCounts, isEmpty } =
+    useDashboardOverview(range)
 
   const rangeSelector = (
     <Tabs
@@ -112,25 +97,6 @@ export default function HomeScreen() {
       </VStack>
     )
   }
-
-  /**
-   * A freshly migrated database returns a valid response of all zeros. Rendering a wall
-   * of "$0.00" would look like a broken dashboard, so the empty state names the actual
-   * next step instead.
-   */
-  /**
-   * "No orders yet" must mean the database is empty, not that this range is quiet.
-   *
-   * pendingOrders and inProgressOrders are live queue depths and are NOT scoped to the
-   * selected range, so including them is what distinguishes a brand-new restaurant from
-   * an established one looking at a slow Tuesday. Without inProgressOrders the screen
-   * could claim there were no orders while a dozen sat in the kitchen.
-   */
-  const isEmpty =
-    data.totalOrders === 0 &&
-    data.pendingOrders === 0 &&
-    data.inProgressOrders === 0 &&
-    data.revenueCents === 0
 
   return (
     <VStack gap={6}>
@@ -179,7 +145,7 @@ export default function HomeScreen() {
           <HStack gap={4} wrap>
             <KpiTile
               label="Revenue"
-              value={formatMoneyCompact(data.revenueCents)}
+              value={money.compact(data.revenueCents)}
               caption="Excludes cancelled orders"
               tone="success"
               icon={<RevenueIcon size={17} color={theme.color.success} />}
@@ -187,7 +153,7 @@ export default function HomeScreen() {
             <KpiTile
               label="Orders"
               value={String(data.totalOrders)}
-              caption={`Average ${formatMoney(data.averageOrderValueCents)}`}
+              caption={`Average ${money.format(data.averageOrderValueCents)}`}
               tone="primary"
               icon={<OrdersIcon size={17} color={theme.color.primary} />}
             />
@@ -279,7 +245,7 @@ export default function HomeScreen() {
                   align: 'right',
                   render: (row) => (
                     <Text variant="bodySm" numeric weight="500">
-                      {formatMoney(row.revenueCents)}
+                      {money.format(row.revenueCents)}
                     </Text>
                   ),
                 },

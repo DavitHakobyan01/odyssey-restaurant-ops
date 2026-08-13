@@ -8,7 +8,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { useGetCustomer, useListOrders } from '@odyssey/api-client'
-import { formatDate, formatMoney, formatRelativeTime } from '@odyssey/shared'
+import { formatDate, formatRelativeTime } from '@odyssey/shared'
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from '@odyssey/types/domain'
 import {
   Avatar,
@@ -26,10 +26,13 @@ import {
   useTheme,
 } from '@odyssey/ui'
 
+import { useMoney } from '../../../src/lib/useMoney'
+
 export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const theme = useTheme()
+  const money = useMoney()
 
   const { data: customer, isPending, isError, error, refetch } = useGetCustomer(id)
 
@@ -109,9 +112,9 @@ export default function CustomerDetailScreen() {
       </Card>
 
       <HStack gap={4} wrap>
-        <StatTile label="Lifetime spend" value={formatMoney(customer.totalSpentCents)} />
+        <StatTile label="Lifetime spend" value={money.format(customer.totalSpentCents)} />
         <StatTile label="Orders" value={String(customer.orderCount)} />
-        <StatTile label="Average order" value={formatMoney(customer.averageOrderValueCents)} />
+        <StatTile label="Average order" value={money.format(customer.averageOrderValueCents)} />
         <StatTile
           label="Last order"
           value={customer.lastOrderAt ? formatRelativeTime(customer.lastOrderAt) : 'Never'}
@@ -167,7 +170,7 @@ export default function CustomerDetailScreen() {
               align: 'right',
               render: (row) => (
                 <Text variant="bodySm" numeric weight="500">
-                  {formatMoney(row.totalCents)}
+                  {money.format(row.totalCents)}
                 </Text>
               ),
             },

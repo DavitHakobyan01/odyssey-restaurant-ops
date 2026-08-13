@@ -40,8 +40,8 @@ export function KpiTile({ label, value, caption, icon, tone = 'neutral', testID 
               align="center"
               justify="center"
               style={{
-                width: 32,
-                height: 32,
+                width: theme.spacing[8],
+                height: theme.spacing[8],
                 borderRadius: theme.radius.lg,
                 backgroundColor: iconBackground,
               }}

@@ -9,17 +9,15 @@
  * So an operator can never be shown a button the server would reject, and adding a new
  * status to the state machine changes this screen without touching it.
  */
-import { useState } from 'react'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import { useGetOrder } from '@odyssey/api-client'
-import { formatDateTime, formatMoney, formatRelativeTime } from '@odyssey/shared'
+import { formatDateTime, formatRelativeTime } from '@odyssey/shared'
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
   ORDER_TRANSITIONS,
   ORDER_TYPE_LABEL,
-  type OrderAction,
 } from '@odyssey/types/domain'
 import {
   Badge,
@@ -42,41 +40,27 @@ import {
   useTheme,
 } from '@odyssey/ui'
 
-import { useOrderActions } from '../../../src/features/orders/useOrderActions'
+import { useOrderActionFlow } from '../../../src/features/orders/useOrderActionFlow'
+import { useMoney } from '../../../src/lib/useMoney'
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const theme = useTheme()
+  const money = useMoney()
   const isPhone = useBreakpoint() === 'sm'
 
   const { data: order, isPending, isError, error, refetch } = useGetOrder(id)
-  const { runAction, runningAction } = useOrderActions()
-
-  const [cancelOpen, setCancelOpen] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
-  const [cancelError, setCancelError] = useState<string | undefined>()
-
-  const onAction = async (action: OrderAction) => {
-    // Cancelling needs a reason; the server rejects a reasonless cancel with a 400, so
-    // the modal collects it rather than letting the operator hit an avoidable error.
-    if (ORDER_TRANSITIONS[action].requiresReason) {
-      setCancelReason('')
-      setCancelError(undefined)
-      setCancelOpen(true)
-      return
-    }
-    await runAction(id, action)
-  }
-
-  const confirmCancel = async () => {
-    if (cancelReason.trim().length === 0) {
-      setCancelError('A reason is required to cancel an order.')
-      return
-    }
-    const ok = await runAction(id, 'cancel', cancelReason.trim())
-    if (ok) setCancelOpen(false)
-  }
+  const {
+    runningAction,
+    onAction,
+    cancelOpen,
+    closeCancel,
+    cancelReason,
+    changeCancelReason,
+    cancelError,
+    confirmCancel,
+  } = useOrderActionFlow(id)
 
   if (isError) {
     return (
@@ -222,7 +206,7 @@ export default function OrderDetailScreen() {
                   align: 'right',
                   render: (row) => (
                     <Text variant="bodySm" numeric tone="muted">
-                      {formatMoney(row.unitPriceCents)}
+                      {money.format(row.unitPriceCents)}
                     </Text>
                   ),
                 },
@@ -232,7 +216,7 @@ export default function OrderDetailScreen() {
                   align: 'right',
                   render: (row) => (
                     <Text variant="bodySm" numeric weight="500">
-                      {formatMoney(row.lineTotalCents)}
+                      {money.format(row.lineTotalCents)}
                     </Text>
                   ),
                 },
@@ -272,11 +256,11 @@ export default function OrderDetailScreen() {
           */}
           <Card padding={4} header={<Text variant="heading">Totals</Text>}>
             <VStack gap={2}>
-              <SummaryRow label="Subtotal" value={formatMoney(order.subtotalCents)} />
-              <SummaryRow label="Tax" value={formatMoney(order.taxCents)} />
-              <SummaryRow label="Service fee" value={formatMoney(order.serviceFeeCents)} />
+              <SummaryRow label="Subtotal" value={money.format(order.subtotalCents)} />
+              <SummaryRow label="Tax" value={money.format(order.taxCents)} />
+              <SummaryRow label="Service fee" value={money.format(order.serviceFeeCents)} />
               <Divider style={{ marginVertical: theme.spacing[1] }} />
-              <SummaryRow label="Total" value={formatMoney(order.totalCents)} emphasis />
+              <SummaryRow label="Total" value={money.format(order.totalCents)} emphasis />
             </VStack>
           </Card>
 
@@ -303,13 +287,13 @@ export default function OrderDetailScreen() {
 
       <Modal
         open={cancelOpen}
-        onClose={() => setCancelOpen(false)}
+        onClose={closeCancel}
         title="Cancel this order?"
         description="Cancelling is final — a cancelled order cannot be reopened."
         size="sm"
         footer={
           <>
-            <Button variant="secondary" onPress={() => setCancelOpen(false)}>
+            <Button variant="secondary" onPress={closeCancel}>
               Keep order
             </Button>
             <Button
@@ -330,10 +314,7 @@ export default function OrderDetailScreen() {
         >
           <Textarea
             value={cancelReason}
-            onChangeText={(value) => {
-              setCancelReason(value)
-              if (cancelError) setCancelError(undefined)
-            }}
+            onChangeText={changeCancelReason}
             placeholder="e.g. Customer called to cancel"
             invalid={Boolean(cancelError)}
           />
