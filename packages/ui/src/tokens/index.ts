@@ -222,6 +222,27 @@ export const layout = {
   topBarHeight: 60,
   /** Minimum touch target. Enforced on every interactive primitive. */
   minTouchTarget: 44,
+
+  /**
+   * Grid rules.
+   *
+   * The product uses a flex-and-wrap grid rather than a fixed 12-column system. React
+   * Native has no CSS Grid, and a column system would have to be reimplemented in JS for
+   * both platforms — so the rule that actually governs layout here is *minimum card
+   * width*: cards declare a `minCardWidth` and wrap when the row can no longer hold them.
+   * That produces 4-up on a laptop, 2-up on a tablet and 1-up on a phone with no
+   * breakpoint arithmetic at any call site.
+   *
+   * `gutter` is the standing gap between grid items, and `sectionGap` the vertical rhythm
+   * between page sections. Both are spacing-scale values, restated here so a layout can
+   * reference the *rule* rather than a raw step.
+   */
+  gutter: 16,
+  sectionGap: 24,
+  /** Below this a grid item wraps to its own row. Tuned so KPI figures never truncate. */
+  minCardWidth: 200,
+  /** Page padding, by breakpoint class. */
+  pagePadding: { compact: 16, regular: 32 },
 } as const
 
 export type Breakpoint = keyof typeof layout.breakpoints

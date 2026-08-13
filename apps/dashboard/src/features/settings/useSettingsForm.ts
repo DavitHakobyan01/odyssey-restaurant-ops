@@ -37,7 +37,30 @@ export type Draft = {
   taxRatePercent: string
   serviceFeePercent: string
   minimumOrderCents: number
+  /**
+   * Always seven entries, indexed by weekday, even when the server stored fewer.
+   *
+   * The API accepts a sparse array, but a form with gaps is unusable — an operator
+   * setting Monday's hours should not have to know whether Monday currently exists as a
+   * row. Days the server omitted are materialised as closed.
+   */
+  openingHours: OpeningHourDraft[]
 }
+
+export type OpeningHourDraft = {
+  dayOfWeek: number
+  opensAt: string
+  closesAt: string
+  isClosed: boolean
+}
+
+/** A day the server did not store: closed, with plausible times ready if it is opened. */
+const closedDay = (dayOfWeek: number): OpeningHourDraft => ({
+  dayOfWeek,
+  opensAt: '09:00',
+  closesAt: '17:00',
+  isClosed: true,
+})
 
 function toDraft(settings: RestaurantSettings): Draft {
   return {
@@ -48,8 +71,18 @@ function toDraft(settings: RestaurantSettings): Draft {
     taxRatePercent: String(settings.taxRateBps / 100),
     serviceFeePercent: String(settings.serviceFeeBps / 100),
     minimumOrderCents: settings.minimumOrderCents,
+    openingHours: Array.from({ length: 7 }, (_, dayOfWeek) => {
+      const stored = settings.openingHours.find((entry) => entry.dayOfWeek === dayOfWeek)
+      return stored ? { ...stored } : closedDay(dayOfWeek)
+    }),
   }
 }
+
+/** 24-hour "HH:mm", the format the API's regex requires. */
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
+
+/** Compare "HH:mm" strings — lexicographic order is chronological in this format. */
+const isBefore = (a: string, b: string) => a < b
 
 /**
  * Percentage string -> basis points. `8.75` -> `875`. Rounds, so 8.756 -> 876.
@@ -90,7 +123,10 @@ export type FieldErrors = Partial<
     'restaurantName' | 'taxRatePercent' | 'serviceFeePercent' | 'defaultPrepTimeMinutes',
     string
   >
->
+> & {
+  /** Keyed by weekday so each row can show its own message. */
+  openingHours?: Partial<Record<number, string>>
+}
 
 /**
  * Validate the numeric fields before anything is compared or submitted.
@@ -118,6 +154,27 @@ function validate(draft: Draft): FieldErrors {
   const prep = toPositiveInt(draft.defaultPrepTimeMinutes)
   if (prep === null) errors.defaultPrepTimeMinutes = 'Enter a whole number of minutes.'
   else if (prep > 240) errors.defaultPrepTimeMinutes = 'Prep time cannot exceed 240 minutes.'
+
+  /**
+   * Opening hours, validated per weekday.
+   *
+   * These mirror the server exactly — it rejects a malformed time with a 400 from the zod
+   * regex, and a close-before-open pair from a schema refinement. Catching both here means
+   * the operator is corrected in the row that is wrong, rather than being handed a
+   * whole-form error that does not say which day.
+   *
+   * A closed day is skipped: its times are irrelevant and the server ignores them too.
+   */
+  const hourErrors: Partial<Record<number, string>> = {}
+  for (const day of draft.openingHours) {
+    if (day.isClosed) continue
+    if (!TIME_PATTERN.test(day.opensAt) || !TIME_PATTERN.test(day.closesAt)) {
+      hourErrors[day.dayOfWeek] = 'Use 24-hour HH:mm, for example 17:30.'
+    } else if (!isBefore(day.opensAt, day.closesAt)) {
+      hourErrors[day.dayOfWeek] = 'Opening time must be before closing time.'
+    }
+  }
+  if (Object.keys(hourErrors).length > 0) errors.openingHours = hourErrors
 
   return errors
 }
@@ -198,6 +255,23 @@ export function useSettingsForm() {
       patch.minimumOrderCents = draft.minimumOrderCents
     }
 
+    /**
+     * Opening hours are sent whole or not at all — the API replaces the array rather than
+     * merging it, so a partial send would silently drop the days left out.
+     *
+     * Compared by value against what the server holds, normalised to the same seven-day
+     * shape `toDraft` produces. Without that normalisation a server array missing a day
+     * would never compare equal to the draft and the form would report itself dirty on
+     * load, enabling Save before the operator had touched anything.
+     */
+    const storedHours = Array.from({ length: 7 }, (_, dayOfWeek) => {
+      const stored = settings.openingHours.find((entry) => entry.dayOfWeek === dayOfWeek)
+      return stored ? { ...stored } : closedDay(dayOfWeek)
+    })
+    if (JSON.stringify(draft.openingHours) !== JSON.stringify(storedHours)) {
+      patch.openingHours = draft.openingHours
+    }
+
     return patch
   }, [settings, draft])
 
@@ -240,9 +314,33 @@ export function useSettingsForm() {
     }
   }, [isDirty, hasErrors, changes, updateSettings, queryClient, toast])
 
+  /**
+   * Update one weekday's hours.
+   *
+   * Marks the form dirty through the same `hasLocalEdits` ref the scalar `update` uses, so
+   * a background refetch cannot overwrite half-edited opening hours either.
+   */
+  const updateDay = useCallback(
+    (dayOfWeek: number, patch: Partial<OpeningHourDraft>) => {
+      hasLocalEdits.current = true
+      setDraft((current) =>
+        current
+          ? {
+              ...current,
+              openingHours: current.openingHours.map((day) =>
+                day.dayOfWeek === dayOfWeek ? { ...day, ...patch } : day,
+              ),
+            }
+          : current,
+      )
+    },
+    [],
+  )
+
   return {
     settings,
     draft,
+    updateDay,
     errors,
     hasErrors,
     isDirty,

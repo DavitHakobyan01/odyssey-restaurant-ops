@@ -31,7 +31,10 @@ import {
   useThemeControls,
 } from '@odyssey/ui'
 
-import { useSettingsForm } from '../../../src/features/settings/useSettingsForm'
+import {
+  useSettingsForm,
+  type OpeningHourDraft,
+} from '../../../src/features/settings/useSettingsForm'
 import { useMoney } from '../../../src/lib/useMoney'
 
 export default function SettingsScreen() {
@@ -50,6 +53,7 @@ export default function SettingsScreen() {
     refetch,
     example,
     update,
+    updateDay,
     save,
     isSaving,
   } = useSettingsForm()
@@ -237,31 +241,27 @@ export default function SettingsScreen() {
       </Card>
 
       {/* --------------------------- Opening hours --------------------------- */}
-      <Card padding={5} header={<Text variant="heading">Opening hours</Text>}>
-        <VStack gap={2}>
-          {DAY_NAMES.map((dayName, index) => {
-            const hours = settings.openingHours.find((entry) => entry.dayOfWeek === index)
-            return (
-              <HStack key={dayName} gap={3} align="center">
-                <Text variant="bodySm" style={{ width: 96 }}>
-                  {dayName}
-                </Text>
-                {hours && !hours.isClosed ? (
-                  <Text variant="bodySm" tone="muted" numeric>
-                    {hours.opensAt} – {hours.closesAt}
-                  </Text>
-                ) : (
-                  <Badge tone="neutral" variant="subtle" size="sm">
-                    Closed
-                  </Badge>
-                )}
-              </HStack>
-            )
-          })}
-          <Text variant="caption" tone="subtle">
-            Opening hours are seeded and shown read-only here; editing them is noted as
-            incomplete in docs/tradeoffs.md.
-          </Text>
+      <Card
+        padding={5}
+        header={
+          <VStack gap={0.5}>
+            <Text variant="heading">Opening hours</Text>
+            <Text variant="caption" tone="subtle">
+              24-hour times. Closing must be later than opening on an open day.
+            </Text>
+          </VStack>
+        }
+      >
+        <VStack gap={3}>
+          {draft.openingHours.map((day, index) => (
+            <OpeningHourRow
+              key={day.dayOfWeek}
+              dayName={DAY_NAMES[index] ?? `Day ${day.dayOfWeek}`}
+              day={day}
+              error={errors.openingHours?.[day.dayOfWeek]}
+              onChange={(patch) => updateDay(day.dayOfWeek, patch)}
+            />
+          ))}
         </VStack>
       </Card>
 
@@ -304,5 +304,84 @@ function ExampleRow({
         {money.format(cents)}
       </Text>
     </HStack>
+  )
+}
+
+/**
+ * One weekday's hours.
+ *
+ * Split out because the row carries its own three-way state (closed / open+valid /
+ * open+invalid), and inlining that made the Settings JSX hard to follow.
+ *
+ * The time fields are plain text rather than a picker: React Native has no native
+ * `<input type="time">`, a cross-platform picker would be a dependency this system does
+ * not carry, and an operator types four digits faster than they tap a wheel. The format
+ * is validated inline against the same rule the server enforces, so a typo is caught in
+ * the row that caused it rather than as a whole-form 400.
+ */
+function OpeningHourRow({
+  dayName,
+  day,
+  error,
+  onChange,
+}: {
+  dayName: string
+  day: OpeningHourDraft
+  error?: string
+  onChange: (patch: Partial<OpeningHourDraft>) => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <VStack gap={1.5}>
+      <HStack gap={3} align="center" wrap>
+        <Text variant="bodySm" weight="500" style={{ width: 96 }}>
+          {dayName}
+        </Text>
+
+        <Switch
+          value={!day.isClosed}
+          onValueChange={(open) => onChange({ isClosed: !open })}
+          size="sm"
+          accessibilityLabel={`${dayName} open`}
+        />
+
+        {day.isClosed ? (
+          <Badge tone="neutral" variant="subtle" size="sm">
+            Closed
+          </Badge>
+        ) : (
+          <HStack gap={2} align="center">
+            <Input
+              value={day.opensAt}
+              onChangeText={(opensAt) => onChange({ opensAt })}
+              placeholder="09:00"
+              size="sm"
+              invalid={Boolean(error)}
+              accessibilityLabel={`${dayName} opening time`}
+              style={{ width: 88 }}
+            />
+            <Text variant="bodySm" tone="subtle">
+              to
+            </Text>
+            <Input
+              value={day.closesAt}
+              onChangeText={(closesAt) => onChange({ closesAt })}
+              placeholder="22:00"
+              size="sm"
+              invalid={Boolean(error)}
+              accessibilityLabel={`${dayName} closing time`}
+              style={{ width: 88 }}
+            />
+          </HStack>
+        )}
+      </HStack>
+
+      {error ? (
+        <Text variant="caption" tone="danger" style={{ marginLeft: theme.spacing[6] }}>
+          {error}
+        </Text>
+      ) : null}
+    </VStack>
   )
 }

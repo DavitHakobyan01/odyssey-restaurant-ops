@@ -47,6 +47,7 @@ import {
   radius,
   spacing,
   typography,
+  useBreakpoint,
   useTheme,
   useThemeControls,
   useToast,
@@ -59,6 +60,7 @@ const SECTIONS = [
   { key: 'tokens', label: 'Tokens' },
   { key: 'typography', label: 'Typography' },
   { key: 'surfaces', label: 'Surfaces' },
+  { key: 'layout', label: 'Layout' },
   { key: 'components', label: 'Components' },
   { key: 'states', label: 'States' },
 ] as const
@@ -102,6 +104,7 @@ export default function UiLibraryScreen() {
       {section === 'tokens' ? <TokensSection /> : null}
       {section === 'typography' ? <TypographySection /> : null}
       {section === 'surfaces' ? <SurfacesSection /> : null}
+      {section === 'layout' ? <LayoutSection /> : null}
       {section === 'components' ? <ComponentsSection /> : null}
       {section === 'states' ? <StatesSection /> : null}
     </VStack>
@@ -316,6 +319,113 @@ function SurfacesSection() {
             </VStack>
           ))}
         </HStack>
+      </Card>
+    </VStack>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                   Layout                                    */
+/* -------------------------------------------------------------------------- */
+
+function LayoutSection() {
+  const theme = useTheme()
+  const breakpoint = useBreakpoint()
+
+  const rows: { label: string; value: string; note: string }[] = [
+    {
+      label: 'layout.breakpoints',
+      value: Object.entries(theme.layout.breakpoints)
+        .map(([name, px]) => `${name} ${px}`)
+        .join('  ·  '),
+      note: 'Consumed through useBreakpoint(), not media queries — React Native has none.',
+    },
+    {
+      label: 'layout.maxContentWidth',
+      value: `${theme.layout.maxContentWidth}px`,
+      note: 'The content column is centred beyond this so line lengths stay readable.',
+    },
+    {
+      label: 'layout.gutter',
+      value: `${theme.layout.gutter}px`,
+      note: 'Standing gap between grid items.',
+    },
+    {
+      label: 'layout.sectionGap',
+      value: `${theme.layout.sectionGap}px`,
+      note: 'Vertical rhythm between page sections.',
+    },
+    {
+      label: 'layout.minCardWidth',
+      value: `${theme.layout.minCardWidth}px`,
+      note: 'A grid item narrower than this wraps to its own row. This is the grid rule.',
+    },
+    {
+      label: 'layout.sidebarWidth',
+      value: `${theme.layout.sidebarWidth} / ${theme.layout.sidebarCollapsedWidth}px`,
+      note: 'Full, then icon-only at md. Hidden entirely at sm in favour of a tab bar.',
+    },
+    {
+      label: 'layout.minTouchTarget',
+      value: `${theme.layout.minTouchTarget}px`,
+      note: 'Enforced on every interactive primitive; also the md control height.',
+    },
+  ]
+
+  return (
+    <VStack gap={5}>
+      <Card
+        padding={5}
+        header={
+          <VStack gap={0.5}>
+            <Text variant="heading">Layout and grid rules</Text>
+            <Text variant="caption" tone="subtle">
+              {`Current viewport resolves to breakpoint "${breakpoint}"`}
+            </Text>
+          </VStack>
+        }
+      >
+        <VStack gap={4}>
+          <Text variant="bodySm" tone="muted">
+            The grid is flex-and-wrap driven by a minimum card width, not a fixed column
+            count — React Native has no CSS Grid, and a column system would have to be
+            reimplemented in JS for both platforms. Cards wrap when the row can no longer
+            hold them, which gives 4-up, 2-up and 1-up with no breakpoint arithmetic at the
+            call site.
+          </Text>
+
+          {rows.map((row) => (
+            <VStack key={row.label} gap={1}>
+              <HStack gap={3} align="center" wrap>
+                <MonoText variant="caption" tone="muted" style={{ minWidth: 190 }}>
+                  {row.label}
+                </MonoText>
+                <Text variant="bodySm" weight="500" numeric>
+                  {row.value}
+                </Text>
+              </HStack>
+              <Text variant="caption" tone="subtle">
+                {row.note}
+              </Text>
+            </VStack>
+          ))}
+        </VStack>
+      </Card>
+
+      <Card padding={5} header={<Text variant="heading">The wrap rule, live</Text>}>
+        <VStack gap={3}>
+          <Text variant="bodySm" tone="muted">
+            Six cards at `minWidth: layout.minCardWidth`. Narrow the window and watch them
+            reflow — this is exactly how the Home KPI row and the CRM stat tiles behave.
+          </Text>
+          <HStack gap={4} wrap>
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <Card key={n} padding={4} style={{ flex: 1, minWidth: theme.layout.minCardWidth }}>
+                <Text variant="bodySm" tone="muted">{`Item ${n}`}</Text>
+              </Card>
+            ))}
+          </HStack>
+        </VStack>
       </Card>
     </VStack>
   )
