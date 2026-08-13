@@ -44,6 +44,7 @@ import {
 } from '@odyssey/ui'
 
 import { InboxIcon, SearchIcon } from '../../../src/components/icons'
+import { CreateOrderModal } from '../../../src/features/orders/CreateOrderModal'
 import { useDebouncedValue } from '../../../src/features/orders/useDebouncedValue'
 
 const PAGE_SIZE = 25
@@ -59,6 +60,7 @@ export default function OrdersScreen() {
   const [sortBy, setSortBy] = useState<ListOrdersSortBy>('placedAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [offset, setOffset] = useState(0)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const search = useDebouncedValue(searchInput, 300)
 
@@ -202,6 +204,17 @@ export default function OrdersScreen() {
         description={
           isPending ? 'Loading…' : `${pluralize(total, 'order')}${hasFilters ? ' matching filters' : ''}`
         }
+        actions={
+          <Button variant="primary" onPress={() => setCreateOpen(true)}>
+            New order
+          </Button>
+        }
+      />
+
+      <CreateOrderModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(orderId) => router.push(`/orders/${orderId}`)}
       />
 
       <Card padding={4}>

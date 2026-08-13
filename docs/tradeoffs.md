@@ -27,6 +27,21 @@ on a simulator or device. Treat native as a bonus that is plausible, not as a cl
 **No image upload.** `menu_items.imageUrl` is a URL column with no upload pipeline (R2 +
 signed URLs would be the natural fit). Seeded items have no images.
 
+**Opening hours are read-only in the UI.** The backend fully supports editing them —
+`PATCH /settings` validates the array, rejects a duplicate weekday with a 400, and
+enforces `opensAt < closesAt` on open days — and the Settings screen renders the current
+schedule. What is missing is the editor: seven rows of paired time inputs with
+client-side validation mirroring the server's. It was the lowest-value remaining surface
+per unit of time, so it lost to finishing the order-creation flow. The API contract for it
+is done and tested.
+
+**Order creation picks an existing customer only.** The API accepts a discriminated union
+— `{ mode: 'existing', customerId }` or `{ mode: 'new', name, email, phone? }` — and the
+`mode: 'new'` path is exercised by the backend test suite, including the case-insensitive
+reuse of an existing email. The modal currently exposes only the `existing` branch, with a
+separate "Add customer" flow in CRM. Wiring the inline branch is a small change to one
+form, not a change to the contract.
+
 ---
 
 ## Known limitations
