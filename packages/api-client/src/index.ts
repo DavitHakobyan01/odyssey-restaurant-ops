@@ -18,6 +18,10 @@
 
 /* Generated request functions, React Query hooks and query-key factories. */
 export * from './generated/endpoints/menu/menu'
+export * from './generated/endpoints/orders/orders'
+export * from './generated/endpoints/customers/customers'
+export * from './generated/endpoints/settings/settings'
+export * from './generated/endpoints/stats/stats'
 
 /* Generated DTOs. */
 export * from './generated/model'

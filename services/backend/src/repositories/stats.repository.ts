@@ -153,10 +153,13 @@ export async function countLiveOrders(
   db: Database,
   statuses: { pending: OrderStatus; inProgress: readonly OrderStatus[] },
 ): Promise<{ pendingOrders: number; inProgressOrders: number }> {
+  const isPending = eq(orders.status, statuses.pending)
+  const isInProgress = inArray(orders.status, [...statuses.inProgress])
+
   const [row] = await db
     .select({
-      pendingOrders: sql<string>`count(*) filter (where ${eq(orders.status, statuses.pending)})`,
-      inProgressOrders: sql<string>`count(*) filter (where ${inArray(orders.status, [...statuses.inProgress])})`,
+      pendingOrders: sql<string>`count(*) filter (where ${isPending})`,
+      inProgressOrders: sql<string>`count(*) filter (where ${isInProgress})`,
     })
     .from(orders)
 
@@ -227,11 +230,14 @@ export async function findTopSellingItems(
 ): Promise<{ menuItemId: string; name: string; quantitySold: number; revenueCents: number }[]> {
   const quantitySold = sql<string>`sum(${orderItems.quantity})`
   const revenueCents = sql<string>`sum(${orderItems.lineTotalCents})`
+  const latestName = sql<string>`
+    (array_agg(${orderItems.nameSnapshot} order by ${orderItems.createdAt} desc))[1]
+  `
 
   const rows = await db
     .select({
       menuItemId: orderItems.menuItemId,
-      name: sql<string>`(array_agg(${orderItems.nameSnapshot} order by ${orderItems.createdAt} desc))[1]`,
+      name: latestName,
       quantitySold,
       revenueCents,
     })
@@ -273,10 +279,14 @@ function trendBucket(range: StatsRange): { unit: SQL; step: SQL } {
  * error or an empty chart.
  */
 function trendSeriesStart(range: StatsRange): SQL {
-  return (
-    rangeStart(range) ??
-    sql`(select date_trunc('day', coalesce(min(${orders.placedAt}), now())) from ${orders} where ${isNotCancelled()})`
-  )
+  const start = rangeStart(range)
+  if (start) return start
+
+  return sql`(
+    select date_trunc('day', coalesce(min(${orders.placedAt}), now()))
+    from ${orders}
+    where ${isNotCancelled()}
+  )`
 }
 
 type RevenueTrendRow = {

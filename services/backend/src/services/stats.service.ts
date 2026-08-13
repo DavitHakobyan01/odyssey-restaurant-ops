@@ -31,7 +31,11 @@ import * as repo from '../repositories/stats.repository'
  * `satisfies` keeps this honest: adding a status to the lifecycle cannot silently produce
  * a typo here, and removing one breaks the build rather than the dashboard.
  */
-const IN_PROGRESS_STATUSES = ['accepted', 'preparing', 'ready'] as const satisfies readonly OrderStatus[]
+const IN_PROGRESS_STATUSES = [
+  'accepted',
+  'preparing',
+  'ready',
+] as const satisfies readonly OrderStatus[]
 
 const PENDING_STATUS: OrderStatus = 'pending'
 

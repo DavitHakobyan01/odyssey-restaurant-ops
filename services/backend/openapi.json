@@ -1422,6 +1422,132 @@
             "maxItems": 7
           }
         }
+      },
+      "DashboardOverview": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "today",
+              "7d",
+              "30d",
+              "all"
+            ]
+          },
+          "totalOrders": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "revenueCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "pendingOrders": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "inProgressOrders": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "averageOrderValueCents": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ordersByStatus": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "accepted",
+                    "preparing",
+                    "ready",
+                    "completed",
+                    "cancelled"
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "status",
+                "count"
+              ]
+            }
+          },
+          "popularItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "menuItemId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "quantitySold": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "revenueCents": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "menuItemId",
+                "name",
+                "quantitySold",
+                "revenueCents"
+              ]
+            }
+          },
+          "revenueTrend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "bucket": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "revenueCents": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "orderCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "bucket",
+                "revenueCents",
+                "orderCount"
+              ]
+            }
+          }
+        },
+        "required": [
+          "range",
+          "totalOrders",
+          "revenueCents",
+          "pendingOrders",
+          "inProgressOrders",
+          "averageOrderValueCents",
+          "ordersByStatus",
+          "popularItems",
+          "revenueTrend"
+        ]
       }
     },
     "parameters": {}
@@ -2895,6 +3021,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RestaurantSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed schema validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats/overview": {
+      "get": {
+        "tags": [
+          "Stats"
+        ],
+        "summary": "Dashboard KPIs for a time range",
+        "operationId": "getDashboardOverview",
+        "description": "Every figure is aggregated in SQL — the dashboard renders this payload and performs no arithmetic of its own.\n\nCancelled orders are excluded from `totalOrders`, `revenueCents` and `averageOrderValueCents`, but are still reported in `ordersByStatus` so cancellations remain visible.\n\n`pendingOrders` and `inProgressOrders` are live queue depths and are deliberately NOT scoped to `range`: an order placed last week that nobody has accepted is still pending today.\n\n`revenueTrend` is bucketed hourly for `today` and daily otherwise, and always includes buckets with no orders so a chart cannot interpolate across a quiet period. `ordersByStatus` always contains every status, including those with a count of zero.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "7d",
+                "30d",
+                "all"
+              ],
+              "default": "today"
+            },
+            "required": false,
+            "name": "range",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated KPIs for the requested range.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardOverview"
                 }
               }
             }

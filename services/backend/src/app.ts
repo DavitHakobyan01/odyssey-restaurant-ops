@@ -51,7 +51,10 @@ export function createApp() {
     },
   })
 
-  app.use('*', logger())
+  // Request logging is noise in the test runner, where hundreds of requests are made.
+  if (process.env.NODE_ENV !== 'test') {
+    app.use('*', logger())
+  }
 
   app.use('*', (c, next) =>
     cors({
