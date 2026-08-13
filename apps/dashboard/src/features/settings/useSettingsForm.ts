@@ -85,6 +85,32 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 const isBefore = (a: string, b: string) => a < b
 
 /**
+ * Field-by-field comparison of two weekday schedules.
+ *
+ * Deliberately not `JSON.stringify(a) !== JSON.stringify(b)`. That is key-order
+ * dependent: the API serialises a stored day as
+ * `{opensAt, closesAt, isClosed, dayOfWeek}` while a locally materialised day is
+ * `{dayOfWeek, opensAt, closesAt, isClosed}`. Identical data, different string. It happens
+ * to work today only because both sides are built by the same code — which is exactly the
+ * kind of coupling that breaks silently the first time either side is touched, and the
+ * failure would be the form reporting itself dirty the moment it loads.
+ */
+function hoursDiffer(a: OpeningHourDraft[], b: OpeningHourDraft[]): boolean {
+  if (a.length !== b.length) return true
+  return a.some((day, index) => {
+    const other = b[index]
+    if (!other) return true
+    return (
+      day.dayOfWeek !== other.dayOfWeek ||
+      day.isClosed !== other.isClosed ||
+      // A closed day's times are irrelevant — the server ignores them, so a difference
+      // there must not mark the form dirty.
+      (!day.isClosed && (day.opensAt !== other.opensAt || day.closesAt !== other.closesAt))
+    )
+  })
+}
+
+/**
  * Percentage string -> basis points. `8.75` -> `875`. Rounds, so 8.756 -> 876.
  *
  * Returns `null` for anything unparseable — critically including the empty string.
@@ -268,7 +294,8 @@ export function useSettingsForm() {
       const stored = settings.openingHours.find((entry) => entry.dayOfWeek === dayOfWeek)
       return stored ? { ...stored } : closedDay(dayOfWeek)
     })
-    if (JSON.stringify(draft.openingHours) !== JSON.stringify(storedHours)) {
+
+    if (hoursDiffer(draft.openingHours, storedHours)) {
       patch.openingHours = draft.openingHours
     }
 
