@@ -157,8 +157,9 @@ function TokensSection() {
                         borderColor: theme.color.border,
                       }}
                     />
+                    {/* Labelled with the full accessor a developer would type. */}
                     <MonoText variant="caption" tone="muted" numberOfLines={1}>
-                      {String(token)}
+                      {`color.${String(token)}`}
                     </MonoText>
                   </VStack>
                 ))}

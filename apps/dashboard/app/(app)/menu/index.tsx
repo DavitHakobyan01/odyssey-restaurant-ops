@@ -472,7 +472,7 @@ function CategoryCard({
             align="center"
             style={{
               paddingHorizontal: theme.spacing[5],
-              paddingVertical: theme.spacing[3.5 as 3],
+              paddingVertical: theme.spacing[3],
               borderTopWidth: index === 0 ? 0 : theme.borderWidth.hairline,
               borderTopColor: theme.color.borderSubtle,
             }}

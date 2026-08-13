@@ -94,7 +94,7 @@ export default function CrmScreen() {
           notes: draft.notes.trim() === '' ? null : draft.notes.trim(),
         },
       })
-      await queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey().slice(0, 1) })
+      await queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() })
       toast.success('Customer added', draft.name.trim())
       setDraft({ name: '', email: '', phone: '', notes: '' })
       setFieldErrors({})

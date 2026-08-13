@@ -65,7 +65,7 @@ export function useOrderActions() {
          */
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) }),
-          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey().slice(0, 1) }),
+          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() }),
         ])
 
         toast.success(

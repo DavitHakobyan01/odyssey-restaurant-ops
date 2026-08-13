@@ -162,7 +162,7 @@ export function CreateOrderModal({ open, onClose, onCreated }: CreateOrderModalP
 
     try {
       const order = await createOrder.mutateAsync({ data: payload })
-      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey().slice(0, 1) })
+      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() })
       toast.success('Order created', `${order.orderNumber} · ${formatMoney(order.totalCents)}`)
       reset()
       onClose()

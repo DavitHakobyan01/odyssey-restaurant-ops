@@ -76,10 +76,54 @@ function toDraft(settings: RestaurantSettings): Draft {
   }
 }
 
-/** Percentage string -> basis points. `8.75` -> `875`. Rounds, so 8.756 -> 876. */
-function percentToBps(percent: string): number {
-  const value = Number.parseFloat(percent)
-  return Number.isFinite(value) ? Math.round(value * 100) : 0
+/**
+ * Percentage string -> basis points. `8.75` -> `875`. Rounds, so 8.756 -> 876.
+ *
+ * Returns `null` for anything unparseable — critically including the empty string.
+ * Coercing a blank field to 0 would be silent data loss: an operator who clears the tax
+ * input to retype it would enable Save and, on pressing it, set the tax rate to 0%.
+ * A null forces the caller to treat the field as invalid instead.
+ */
+function percentToBps(percent: string): number | null {
+  const trimmed = percent.trim()
+  if (trimmed === '') return null
+  const value = Number.parseFloat(trimmed)
+  if (!Number.isFinite(value) || value < 0) return null
+  return Math.round(value * 100)
+}
+
+/** Positive-integer field parse, with the same "blank is not zero" rule. */
+function toPositiveInt(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (trimmed === '') return null
+  const value = Number(trimmed)
+  return Number.isInteger(value) && value > 0 ? value : null
+}
+
+type FieldErrors = Partial<Record<'taxRatePercent' | 'serviceFeePercent' | 'defaultPrepTimeMinutes', string>>
+
+/**
+ * Validate the numeric fields before anything is compared or submitted.
+ *
+ * Mirrors the server's own bounds (tax and service fee cap at 100%, prep time must be a
+ * positive integer) so the operator is corrected inline rather than bounced by a 400.
+ */
+function validate(draft: Draft): FieldErrors {
+  const errors: FieldErrors = {}
+
+  const tax = percentToBps(draft.taxRatePercent)
+  if (tax === null) errors.taxRatePercent = 'Enter a percentage, for example 8.75.'
+  else if (tax > 10_000) errors.taxRatePercent = 'Tax rate cannot exceed 100%.'
+
+  const fee = percentToBps(draft.serviceFeePercent)
+  if (fee === null) errors.serviceFeePercent = 'Enter a percentage, for example 5.'
+  else if (fee > 10_000) errors.serviceFeePercent = 'Service fee cannot exceed 100%.'
+
+  const prep = toPositiveInt(draft.defaultPrepTimeMinutes)
+  if (prep === null) errors.defaultPrepTimeMinutes = 'Enter a whole number of minutes.'
+  else if (prep > 240) errors.defaultPrepTimeMinutes = 'Prep time cannot exceed 240 minutes.'
+
+  return errors
 }
 
 export default function SettingsScreen() {
@@ -104,6 +148,9 @@ export default function SettingsScreen() {
    * also silently overwrite anything another operator changed between our load and our
    * save — a partial patch touches only what this form actually edited.
    */
+  const errors = useMemo<FieldErrors>(() => (draft ? validate(draft) : {}), [draft])
+  const hasErrors = Object.keys(errors).length > 0
+
   const changes = useMemo<UpdateSettingsRequest>(() => {
     if (!settings || !draft) return {}
     const patch: UpdateSettingsRequest = {}
@@ -117,15 +164,27 @@ export default function SettingsScreen() {
     if (draft.autoAcceptOrders !== settings.autoAcceptOrders) {
       patch.autoAcceptOrders = draft.autoAcceptOrders
     }
-    if (Number(draft.defaultPrepTimeMinutes) !== settings.defaultPrepTimeMinutes) {
-      patch.defaultPrepTimeMinutes = Number(draft.defaultPrepTimeMinutes)
+
+    /**
+     * Numeric fields are only included when they parse. An unparseable field is an
+     * *error*, never a zero — without this guard, clearing the tax input would compare
+     * 0 against 875, register as a change, and quietly zero the tax rate on save.
+     */
+    const prep = toPositiveInt(draft.defaultPrepTimeMinutes)
+    if (prep !== null && prep !== settings.defaultPrepTimeMinutes) {
+      patch.defaultPrepTimeMinutes = prep
     }
-    if (percentToBps(draft.taxRatePercent) !== settings.taxRateBps) {
-      patch.taxRateBps = percentToBps(draft.taxRatePercent)
+
+    const tax = percentToBps(draft.taxRatePercent)
+    if (tax !== null && tax !== settings.taxRateBps) {
+      patch.taxRateBps = tax
     }
-    if (percentToBps(draft.serviceFeePercent) !== settings.serviceFeeBps) {
-      patch.serviceFeeBps = percentToBps(draft.serviceFeePercent)
+
+    const fee = percentToBps(draft.serviceFeePercent)
+    if (fee !== null && fee !== settings.serviceFeeBps) {
+      patch.serviceFeeBps = fee
     }
+
     if (draft.minimumOrderCents !== settings.minimumOrderCents) {
       patch.minimumOrderCents = draft.minimumOrderCents
     }
@@ -141,14 +200,19 @@ export default function SettingsScreen() {
    */
   const example = useMemo(() => {
     if (!draft) return null
+    const taxRateBps = percentToBps(draft.taxRatePercent)
+    const serviceFeeBps = percentToBps(draft.serviceFeePercent)
+    // Do not price the example at 0% while a field is blank or mid-edit — that would show
+    // a confidently wrong "customer pays" figure.
+    if (taxRateBps === null || serviceFeeBps === null) return null
     return calculateOrderTotals([{ unitPriceCents: EXAMPLE_SUBTOTAL_CENTS, quantity: 1 }], {
-      taxRateBps: percentToBps(draft.taxRatePercent),
-      serviceFeeBps: percentToBps(draft.serviceFeePercent),
+      taxRateBps,
+      serviceFeeBps,
     })
   }, [draft])
 
   const save = async () => {
-    if (!isDirty) return
+    if (!isDirty || hasErrors) return
     try {
       await updateSettings.mutateAsync({ data: changes })
       await queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() })
@@ -204,7 +268,7 @@ export default function SettingsScreen() {
             ) : null}
             <Button
               variant="primary"
-              disabled={!isDirty}
+              disabled={!isDirty || hasErrors}
               loading={updateSettings.isPending}
               onPress={() => void save()}
             >
@@ -252,8 +316,10 @@ export default function SettingsScreen() {
           <Field
             label="Default prep time"
             helperText="Minutes. Used for items that do not set their own."
+            error={errors.defaultPrepTimeMinutes}
           >
             <Input
+              invalid={Boolean(errors.defaultPrepTimeMinutes)}
               value={draft.defaultPrepTimeMinutes}
               onChangeText={(value) =>
                 update('defaultPrepTimeMinutes', value.replace(/[^0-9]/g, ''))
@@ -269,8 +335,13 @@ export default function SettingsScreen() {
         <VStack gap={4}>
           <HStack gap={4} wrap>
             <VStack style={{ flex: 1, minWidth: 180 }}>
-              <Field label="Tax rate" helperText="Applied to the order subtotal.">
+              <Field
+                label="Tax rate"
+                helperText="Applied to the order subtotal."
+                error={errors.taxRatePercent}
+              >
                 <Input
+                  invalid={Boolean(errors.taxRatePercent)}
                   value={draft.taxRatePercent}
                   onChangeText={(value) =>
                     update('taxRatePercent', value.replace(/[^0-9.]/g, ''))
@@ -285,8 +356,13 @@ export default function SettingsScreen() {
               </Field>
             </VStack>
             <VStack style={{ flex: 1, minWidth: 180 }}>
-              <Field label="Service fee" helperText="Also applied to the subtotal, not compounded on tax.">
+              <Field
+                label="Service fee"
+                helperText="Also applied to the subtotal, not compounded on tax."
+                error={errors.serviceFeePercent}
+              >
                 <Input
+                  invalid={Boolean(errors.serviceFeePercent)}
                   value={draft.serviceFeePercent}
                   onChangeText={(value) =>
                     update('serviceFeePercent', value.replace(/[^0-9.]/g, ''))

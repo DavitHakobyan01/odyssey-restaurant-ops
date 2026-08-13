@@ -44,8 +44,15 @@ export default defineConfig({
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: ['node_modules', 'dist', '.expo'],
     server: {
-      // Workspace packages are TypeScript source and must go through Vite's transform.
-      deps: { inline: [/^@odyssey\//, /react-native-web/] },
+      /**
+       * Workspace packages ship TypeScript source and must go through Vite's transform.
+       *
+       * `react-native-svg` is here for a different reason: it publishes untranspiled
+       * source, so Node cannot parse it directly and any screen importing an icon fails to
+       * load with `SyntaxError: Unexpected token 'typeof'`. Inlining routes it through
+       * Vite's transform like first-party code.
+       */
+      deps: { inline: [/^@odyssey\//, /react-native-web/, /react-native-svg/] },
     },
   },
 })
