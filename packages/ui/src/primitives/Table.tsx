@@ -269,8 +269,8 @@ function SortableHeaderCell({
 
       {focused ? (
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             top: 0,
             left: 0,
@@ -349,8 +349,8 @@ function TableRow({ children, onPress, accessibilityLabel, testID }: TableRowPro
       {children}
       {focused ? (
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             top: 0,
             left: 0,

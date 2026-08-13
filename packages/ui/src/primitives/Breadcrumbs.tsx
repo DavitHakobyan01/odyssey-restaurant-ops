@@ -109,8 +109,8 @@ function Crumb({ item, testID }: { item: BreadcrumbItem & { onPress: () => void 
       {/* Ring outside the box — a border would nudge the rest of the trail sideways. */}
       {focused ? (
         <View
-          pointerEvents="none"
           style={{
+            pointerEvents: 'none',
             position: 'absolute',
             top: -ringOffset,
             left: -ringOffset,

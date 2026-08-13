@@ -267,8 +267,8 @@ export function Tabs({
 
             {focused ? (
               <View
-                pointerEvents="none"
                 style={{
+                  pointerEvents: 'none',
                   position: 'absolute',
                   top: -ringOffset,
                   left: -ringOffset,
@@ -289,8 +289,8 @@ export function Tabs({
         than stacking on top of it, which would otherwise read as a 3px-thick rule.
       */}
       <Animated.View
-        pointerEvents="none"
         style={{
+          pointerEvents: 'none',
           position: 'absolute',
           bottom: -theme.borderWidth.hairline,
           left: indicatorX,

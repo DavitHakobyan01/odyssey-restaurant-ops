@@ -403,8 +403,8 @@ export function Modal({
           <View style={{ flexShrink: 1, overflow: 'hidden', ...cornerRadius }}>
             {isSheet ? (
               <View
-                pointerEvents="none"
                 style={{
+                  pointerEvents: 'none',
                   alignSelf: 'center',
                   width: GRABBER.width,
                   height: GRABBER.height,

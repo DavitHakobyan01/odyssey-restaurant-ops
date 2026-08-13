@@ -216,8 +216,8 @@ export function NavItem({
             */}
             {active ? (
               <View
-                pointerEvents="none"
                 style={{
+                  pointerEvents: 'none',
                   position: 'absolute',
                   left: 0,
                   top: theme.spacing[2],
@@ -276,8 +276,8 @@ export function NavItem({
             */}
             {focused ? (
               <View
-                pointerEvents="none"
                 style={{
+                  pointerEvents: 'none',
                   position: 'absolute',
                   top: -ringOffset,
                   left: -ringOffset,

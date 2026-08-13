@@ -187,6 +187,10 @@ function resolvePlacement(input: PlacementInput): Placement {
       ? { right: clamp(windowSize.width - (rect.x + rect.width), gutter, windowSize.width - gutter) }
       : { left: clamp(rect.x, gutter, windowSize.width - gutter) }
 
+  // A panel narrower than the control that opened it always looks like a mistake, so the
+  // anchor's width is a floor even when the panel is free to size to its content.
+  const minWidth = Math.min(Math.max(rect.width, input.minWidth ?? 0), usableWidth)
+
   return {
     side,
     maxHeight,
@@ -194,7 +198,7 @@ function resolvePlacement(input: PlacementInput): Placement {
       ...vertical,
       ...horizontal,
       maxWidth: usableWidth,
-      ...(input.minWidth === undefined ? {} : { minWidth: Math.min(input.minWidth, usableWidth) }),
+      minWidth,
       maxHeight,
     },
   }

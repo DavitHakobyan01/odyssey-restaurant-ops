@@ -126,8 +126,8 @@ export function InputFocusRing({ visible, radius }: { visible: boolean; radius: 
 
   return (
     <View
-      pointerEvents="none"
       style={{
+        pointerEvents: 'none',
         position: 'absolute',
         top: -FOCUS_RING_OFFSET,
         left: -FOCUS_RING_OFFSET,

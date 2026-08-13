@@ -326,6 +326,7 @@ export function Menu({
       align={align}
       anchorStyle={style}
       closeLabel="Close the actions menu"
+      testID={testID ? `${testID}-popover` : undefined}
       anchor={trigger({ open, toggle })}
     >
       {({ maxHeight }) => (

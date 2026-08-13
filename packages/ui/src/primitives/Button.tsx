@@ -179,6 +179,12 @@ export function Button({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityState={{ disabled: interactionBlocked, busy: loading }}
+        // React Native 0.86 supports ARIA props directly, and react-native-web maps these
+        // straight onto the DOM node. `accessibilityState` alone does not reliably produce
+        // `aria-busy` on web, so a screen reader would never announce that a submitting
+        // button is working. Setting both covers native and web.
+        aria-busy={loading}
+        aria-disabled={interactionBlocked}
         style={({ pressed }) => {
           const visual = resolveVisual(theme, variant, {
             hovered,
@@ -243,8 +249,8 @@ export function Button({
               */}
               {focused ? (
                 <View
-                  pointerEvents="none"
                   style={{
+                    pointerEvents: 'none',
                     position: 'absolute',
                     top: -3,
                     left: -3,

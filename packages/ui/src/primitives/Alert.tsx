@@ -168,8 +168,8 @@ function AlertDismissButton({ onPress, tone }: { onPress: () => void; tone: Tone
           {/* Ring is drawn outside the box so focusing it cannot reflow the banner. */}
           {focused ? (
             <View
-              pointerEvents="none"
               style={{
+                pointerEvents: 'none',
                 position: 'absolute',
                 top: -3,
                 left: -3,

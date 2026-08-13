@@ -219,8 +219,8 @@ function ToastViewport({
     <View
       // `box-none` lets presses fall through the empty area of the viewport to the app
       // underneath; without it the whole corner of the screen becomes dead to touch.
-      pointerEvents="box-none"
       style={{
+        pointerEvents: 'box-none',
         position: 'absolute',
         right: 0,
         ...(compact ? { left: 0, bottom: 0 } : { top: 0 }),
@@ -390,8 +390,8 @@ export function Toast({
         tone-coloured title would make neutral toasts read as one flat grey block.
       */}
       <View
-        pointerEvents="none"
         style={{
+          pointerEvents: 'none',
           position: 'absolute',
           left: 0,
           top: 0,
@@ -468,8 +468,8 @@ function ToastDismissButton({ onPress }: { onPress: () => void }) {
           {/* Outside the box, so focusing the control cannot resize the toast. */}
           {focused ? (
             <View
-              pointerEvents="none"
               style={{
+                pointerEvents: 'none',
                 position: 'absolute',
                 top: -3,
                 left: -3,
